@@ -447,6 +447,11 @@ void Plane::set_mode(enum FlightMode mode)
         do_loiter_at_location();
         break;
 
+    case EIGHT_PLANE:
+        auto_throttle_mode = true;
+        do_eight_plane();
+        break;
+
     case GUIDED:
         auto_throttle_mode = true;
         guided_throttle_passthru = false;

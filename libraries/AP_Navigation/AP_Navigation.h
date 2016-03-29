@@ -75,6 +75,8 @@ public:
 	// navigation attitude/steering.
 	virtual void update_loiter(const struct Location &center_WP, float radius, int8_t loiter_direction) = 0;
 
+	virtual void update_eight_plane(const struct Location &center_WP, float radius, Vector2f axis, float axis_proj, float v_axis, const struct Location &first_turn, const struct Location &second_turn, const struct Location &ta_loc, const struct Location &tb_loc, int8_t &branch, int8_t &branch_turn1, int8_t loiter_direction) = 0;
+
 	// update the internal state of the navigation controller, given a
 	// fixed heading. This is the step function for navigation control
 	// for a fixed heading.  This function is called at regular

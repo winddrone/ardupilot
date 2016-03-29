@@ -45,6 +45,9 @@ public:
 	float turn_distance(float wp_radius, float turn_angle) const;
 	void update_waypoint(const struct Location &prev_WP, const struct Location &next_WP);
 	void update_loiter(const struct Location &center_WP, float radius, int8_t loiter_direction);
+	float goto_loc_acc(const struct Location &center_WP, const struct Location &_current_loc, Vector2f _groundspeed_vector);
+	float loiter_loc_acc(const struct Location &center_WP, float radius, const struct Location &_current_loc, Vector2f groundspeed_vector);
+	void update_eight_plane(const struct Location &center_WP, float radius, Vector2f axis, float axis_proj, float v_axis, const struct Location &first_turn, const struct Location &second_turn, const struct Location &ta_loc, const struct Location &tb_loc, int8_t &branch, int8_t &branch_turn1, int8_t loiter_direction);
 	void update_heading_hold(int32_t navigation_heading_cd);
 	void update_level_flight(void);
 	bool reached_loiter_target(void);

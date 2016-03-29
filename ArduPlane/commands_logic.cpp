@@ -857,6 +857,93 @@ void Plane::do_loiter_at_location()
     next_WP_loc = current_loc;
 }
 
+void Plane::do_eight_plane()
+{
+    float LOCATION_SCALING_FACTOR_INV = 89.83204953368922;
+    // magnitude and orientation of eight
+    eight.distance = 500;                   // distance of both turning points
+    eight.angle = radians(0);               // angle between distance vector and north
+    eight.crossangle = radians(60);         // angle of crossing path in the middle of distance vector
+
+
+    eight.radius = eight.distance/2*sinf(eight.crossangle/2);
+
+    float sigma_ec = eight.angle + eight.crossangle;
+    float delta_ec = eight.angle - eight.crossangle;
+    float csigma_ec = cosf(sigma_ec);
+    float ssigma_ec = sinf(sigma_ec);
+    float cdelta_ec = cosf(delta_ec);
+    float sdelta_ec = sinf(delta_ec);
+    float ce = cosf(eight.angle);
+    float se = sinf(eight.angle);
+
+    next_WP_loc = current_loc;
+
+    eight.turn1_loc = next_WP_loc;
+    eight.turn1_loc.lat += eight.distance/2*ce*LOCATION_SCALING_FACTOR_INV;
+    eight.turn1_loc.lng += eight.distance/2*se*LOCATION_SCALING_FACTOR_INV/longitude_scale(next_WP_loc);
+
+    eight.turn2_loc = next_WP_loc;
+    eight.turn2_loc.lat -= eight.distance/2*ce*LOCATION_SCALING_FACTOR_INV;
+    eight.turn2_loc.lng -= eight.distance/2*se*LOCATION_SCALING_FACTOR_INV/longitude_scale(next_WP_loc);
+
+    eight.tp1_loc = next_WP_loc;
+    eight.tp1_loc.lat += eight.distance/4*(ce + cdelta_ec)*LOCATION_SCALING_FACTOR_INV;
+    eight.tp1_loc.lng += eight.distance/4*(se + sdelta_ec)/longitude_scale(next_WP_loc)*LOCATION_SCALING_FACTOR_INV;
+
+    eight.tp2_loc = next_WP_loc;
+    eight.tp2_loc.lat += eight.distance/4*(ce + csigma_ec)*LOCATION_SCALING_FACTOR_INV;
+    eight.tp2_loc.lng += eight.distance/4*(se + ssigma_ec)/longitude_scale(next_WP_loc)*LOCATION_SCALING_FACTOR_INV;
+
+    eight.tp3_loc = next_WP_loc;
+    eight.tp3_loc.lat -= eight.distance/4*(ce + cdelta_ec)*LOCATION_SCALING_FACTOR_INV;
+    eight.tp3_loc.lng -= eight.distance/4*(se + sdelta_ec)/longitude_scale(next_WP_loc)*LOCATION_SCALING_FACTOR_INV;
+
+    eight.tp4_loc = next_WP_loc;
+    eight.tp4_loc.lat -= eight.distance/4*(ce + csigma_ec)*LOCATION_SCALING_FACTOR_INV;
+    eight.tp4_loc.lng -= eight.distance/4*(se + ssigma_ec)/longitude_scale(next_WP_loc)*LOCATION_SCALING_FACTOR_INV;
+
+
+
+    eight.axis = location_diff(next_WP_loc, eight.turn1_loc);
+    eight.circle_vec_tp1 = location_diff(eight.turn1_loc, eight.tp1_loc);
+    eight.axis_proj = eight.circle_vec_tp1.normalized() * eight.axis.normalized();
+    // to which tp the velocity vector is pointing: v_axis, v_perp = ++ -> tp1, +- -> tp2, -- -> tp3, -+ -> tp4
+    eight.v_axis = groundspeed_vector * eight.axis.normalized();
+    eight.v_perp = groundspeed_vector % eight.axis.normalized();
+
+    eight.branch = 1;
+    eight.branch_turn1 = (eight.v_axis > 0) ? 1 : -1;
+    loiter.direction = (eight.v_axis*eight.v_perp < 0) ? -1 : 1;
+
+
+
+    if(eight.v_axis > 0) {                                          // 1           2
+        eight.first_turn = eight.turn1_loc;                         //     turn1
+        eight.second_turn = eight.turn2_loc;                        //
+        if(eight.v_perp > 0) {                                      //     turn2
+            eight.ta_loc = eight.tp1_loc;                           // 4           3
+            eight.tb_loc = eight.tp4_loc;
+        }
+        else {
+            eight.ta_loc = eight.tp2_loc;
+            eight.tb_loc = eight.tp3_loc;
+        }
+    }
+    else {
+        eight.first_turn = eight.turn2_loc;
+        eight.second_turn = eight.turn1_loc;
+        if(eight.v_perp > 0) {
+            eight.ta_loc = eight.tp4_loc;
+            eight.tb_loc = eight.tp1_loc;
+        }
+        else {
+            eight.ta_loc = eight.tp3_loc;
+            eight.tb_loc = eight.tp2_loc;
+        }
+    }
+}
+
 void Plane::do_change_speed(const AP_Mission::Mission_Command& cmd)
 {
     switch (cmd.content.speed.speed_type)

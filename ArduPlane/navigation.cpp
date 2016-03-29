@@ -167,6 +167,13 @@ void Plane::update_loiter(uint16_t radius)
     }
 }
 
+void Plane::update_eight_plane()
+{
+
+    nav_controller->update_eight_plane(next_WP_loc, eight.radius, eight.axis, eight.axis_proj, eight.v_axis, eight.first_turn, eight.second_turn, eight.ta_loc, eight.tb_loc, eight.branch, eight.branch_turn1, loiter.direction);
+
+}
+
 /*
   handle CRUISE mode, locking heading to GPS course when we have
   sufficient ground speed, and no aileron or rudder input

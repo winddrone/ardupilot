@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+
 // used to pack structures
 #define PACKED __attribute__((__packed__))
 
@@ -102,6 +103,7 @@ struct PACKED Location {
     int32_t lat;                                        ///< param 3 - Lattitude * 10**7
     int32_t lng;                                        ///< param 4 - Longitude * 10**7
 };
+
 
 /*
   home states. Used to record if user has overridden home position.

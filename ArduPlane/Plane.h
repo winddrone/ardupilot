@@ -619,6 +619,51 @@ private:
     } loiter;
 
 
+    struct Eight_plane {
+        // angle of eight with respect to NED system in centi-degrees
+        float angle;
+
+        // angle of crossing path in centi-degrees
+        float crossangle;
+
+        // distance of two centerpoints of turning circles in m
+        int32_t distance;
+
+        float radius;
+
+        // Unit direction vector between turning points
+        /*  Vector2f axis;
+
+                    float axis_proj;*/
+
+        int8_t branch;
+
+        int8_t branch_turn1;
+
+        //targetpoints
+        Location tp1_loc {};                    // tp1          tp2
+        Location tp2_loc {};                    //      turn1
+        Location tp3_loc {};                    //      distance
+        Location tp4_loc {};                    //      turn2
+        // tp4          tp3
+        Location turn1_loc {};
+        Location turn2_loc {};
+
+        struct Location ta_loc {};
+        struct Location tb_loc {};
+        struct Location first_turn {};
+        struct Location second_turn {};
+
+        Vector2f axis;
+        Vector2f circle_vec_tp1;
+        float axis_proj;
+        // to which tp the velocity vector is pointing: v_axis, v_perp = ++ -> tp1, +- -> tp2, -- -> tp3, -+ -> tp4
+        float v_axis;
+        float v_perp;
+
+    } eight;
+
+
     // Conditional command
     // A value used in condition commands (eg delay, change alt, etc.)
     // For example in a change altitude command, it is the altitude to change to.
@@ -642,6 +687,9 @@ private:
 
     // The plane's current location
     struct Location current_loc {};
+
+    // current ground speed vector
+    Vector2f groundspeed_vector;
 
     // The location of the current/active waypoint.  Used for altitude ramp, track following and loiter calculations.
     Location next_WP_loc {};
@@ -825,6 +873,7 @@ private:
     bool verify_vtol_takeoff(const AP_Mission::Mission_Command &cmd);
     bool verify_vtol_land(const AP_Mission::Mission_Command &cmd);
     void do_loiter_at_location();
+    void do_eight_plane();
     void do_take_picture();
     bool verify_loiter_heading(bool init);
     void log_picture();
@@ -870,6 +919,7 @@ private:
     void calc_airspeed_errors();
     void calc_gndspeed_undershoot();
     void update_loiter(uint16_t radius);
+    void update_eight_plane();
     void update_cruise();
     void update_fbwb_speed_height(void);
     void setup_turn_angle(void);

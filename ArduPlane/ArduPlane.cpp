@@ -428,6 +428,7 @@ void Plane::update_GPS_10Hz(void)
 {
     // get position from AHRS
     have_position = ahrs.get_position(current_loc);
+    groundspeed_vector = ahrs.groundspeed_vector();
 
     static uint32_t last_gps_msg_ms;
     if (gps.last_message_time_ms() != last_gps_msg_ms && gps.status() >= AP_GPS::GPS_OK_FIX_3D) {
@@ -559,6 +560,7 @@ void Plane::update_flight_mode(void)
     case RTL:
     case LOITER:
     case GUIDED:
+    case EIGHT_PLANE:
         calc_nav_roll();
         calc_nav_pitch();
         calc_throttle();
@@ -769,6 +771,10 @@ void Plane::update_navigation()
     case LOITER:
     case GUIDED:
         update_loiter(radius);
+        break;
+
+    case EIGHT_PLANE:
+        update_eight_plane();
         break;
 
     case CRUISE:
