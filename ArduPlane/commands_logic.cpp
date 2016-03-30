@@ -917,7 +917,6 @@ void Plane::do_eight_plane()
     loiter.direction = (eight.v_axis*eight.v_perp < 0) ? -1 : 1;
 
 
-
     if(eight.v_axis > 0) {                                          // 1           2
         eight.first_turn = eight.turn1_loc;                         //     turn1
         eight.second_turn = eight.turn2_loc;                        //

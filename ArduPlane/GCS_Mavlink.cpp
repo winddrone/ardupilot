@@ -49,9 +49,9 @@ void Plane::send_heartbeat(mavlink_channel_t chan)
     case AUTO:
     case RTL:
     case LOITER:
+    case EIGHT_PLANE:
     case GUIDED:
     case CIRCLE:
-    case EIGHT_PLANE:
         base_mode = MAV_MODE_FLAG_GUIDED_ENABLED |
                     MAV_MODE_FLAG_STABILIZE_ENABLED;
         // note that MAV_MODE_FLAG_AUTO_ENABLED does not match what
@@ -202,9 +202,9 @@ void Plane::send_extended_status1(mavlink_channel_t chan)
     case AUTO:
     case RTL:
     case LOITER:
+    case EIGHT_PLANE:
     case GUIDED:
     case CIRCLE:
-    case EIGHT_PLANE:
         control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_ANGULAR_RATE_CONTROL; // 3D angular rate control
         control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_ATTITUDE_STABILIZATION; // attitude stabilisation
         control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_YAW_POSITION; // yaw position

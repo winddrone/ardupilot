@@ -506,7 +506,6 @@ void AP_L1_Control::update_eight_plane(const struct Location &center_WP, float r
 
 
     float v_current = _groundspeed_vector * axis.normalized();
-
     // sequence is always center_WP -goto-> ta -loiter first_turn -> -goto-> center_WP -goto-> tb -loiter second_turn-> and goto -> center_WP
 
     //if (((plane_proj < 0)?-plane_proj: plane_proj) >= ((axis_proj < 0)?-axis_proj:axis_proj)){

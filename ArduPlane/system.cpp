@@ -512,6 +512,7 @@ bool Plane::mavlink_set_mode(uint8_t mode)
     case QHOVER:
     case QLOITER:
     case QLAND:
+    case EIGHT_PLANE:
         set_mode((enum FlightMode)mode);
         return true;
     }
@@ -698,6 +699,9 @@ void Plane::print_flight_mode(AP_HAL::BetterStream *port, uint8_t mode)
         break;
     case LOITER:
         port->print("Loiter");
+        break;
+    case EIGHT_PLANE:
+        port->print("Eight plane");
         break;
     case GUIDED:
         port->print("Guided");
