@@ -428,7 +428,7 @@ void Plane::update_GPS_10Hz(void)
 {
     // get position from AHRS
     have_position = ahrs.get_position(current_loc);
-    groundspeed_vector = ahrs.groundspeed_vector();
+    groundspeed_vector = ahrs.groundspeed_vector(); //get groundspeed from AHRS for flight mode EIGHT_PLANE
 
     static uint32_t last_gps_msg_ms;
     if (gps.last_message_time_ms() != last_gps_msg_ms && gps.status() >= AP_GPS::GPS_OK_FIX_3D) {
