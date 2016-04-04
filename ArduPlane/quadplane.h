@@ -68,6 +68,8 @@ public:
         int32_t  baro_alt;
         int16_t  desired_climb_rate;
         int16_t  climb_rate;
+        float    dvx;
+        float    dvy;
     };
         
 private:
@@ -137,6 +139,7 @@ private:
     bool should_relax(void);
     void motors_output(void);
     void Log_Write_QControl_Tuning();
+    float landing_descent_rate_cms(float height_above_ground);
     
     // setup correct aux channels for frame class
     void setup_default_channels(uint8_t num_motors);
@@ -197,13 +200,15 @@ private:
     uint32_t last_loiter_ms;
 
     enum {
-        QLAND_POSITION,
+        QLAND_POSITION1,
+        QLAND_POSITION2,
         QLAND_DESCEND,
         QLAND_FINAL,
         QLAND_COMPLETE
     } land_state;
     int32_t land_yaw_cd;
     float land_wp_proportion;
+    float land_speed_scale;
 
     enum frame_class {
         FRAME_CLASS_QUAD=0,
