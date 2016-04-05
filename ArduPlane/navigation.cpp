@@ -174,6 +174,13 @@ void Plane::update_eight_plane()
 
 }
 
+void Plane::update_loiter_3d()
+{
+
+    nav_controller->update_loiter_3d(cross_section.circle_center, cross_section.circle_radius, loiter.direction);
+
+}
+
 /*
   handle CRUISE mode, locking heading to GPS course when we have
   sufficient ground speed, and no aileron or rudder input

@@ -436,11 +436,6 @@ void Plane::set_mode(enum FlightMode mode)
         mission.start_or_resume();
         break;
 
-    case WINDDRONE:
-        auto_throttle_mode = true;
-        mission.start_or_resume();
-
-
     case RTL:
         auto_throttle_mode = true;
         prev_WP_loc = current_loc;
@@ -455,6 +450,13 @@ void Plane::set_mode(enum FlightMode mode)
     case EIGHT_PLANE:
         auto_throttle_mode = true;
         do_eight_plane();
+        break;
+
+    case LOITER_3D:
+        auto_throttle_mode = true;
+        do_loiter_3d();
+
+        // mission.start_or_resume();
         break;
 
     case GUIDED:

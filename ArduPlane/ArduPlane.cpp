@@ -529,31 +529,6 @@ void Plane::handle_auto_mode(void)
     }
 }
 
-void Plane::handle_winddrone_mode(void)
-{
-    uint8_t nav_cmd_id;
-
-    // we should be either running a mission or loiter inside the sphere
-    if (mission.state() == AP_Mission::MISSION_RUNNING) {
-        nav_cmd_id = mission.get_current_nav_cmd().id;
-    }else{
-        nav_cmd_id = auto_rtl_command.id;          // nav_cmd_id = winddrone_loiter_command.id;
-    }
-
-
-    // we are doing normal AUTO flight, the special cases
-    // are for takeoff and landing
-    if (nav_cmd_id != MAV_CMD_NAV_CONTINUE_AND_CHANGE_ALT) {
-        steer_state.hold_course_cd = -1;
-    }
-    auto_state.land_complete = false;
-    auto_state.land_pre_flare = false;
-    calc_nav_roll();
-    calc_nav_pitch();
-    calc_throttle();
-}
-}
-
 /*
   main flight mode dependent update code 
  */
@@ -582,8 +557,8 @@ void Plane::update_flight_mode(void)
         handle_auto_mode();
         break;
 
-    case WINDDRONE:
-        handle_winddrone_mode();
+    case LOITER_3D:
+        // code
         break;
 
     case RTL:
@@ -767,7 +742,6 @@ void Plane::update_navigation()
     
     switch(control_mode) {
     case AUTO:
-    case WINDDRONE:
         update_commands();
         break;
             
@@ -805,6 +779,10 @@ void Plane::update_navigation()
 
     case EIGHT_PLANE:
         update_eight_plane();
+        break;
+
+    case LOITER_3D:
+        update_loiter_3d();
         break;
 
     case CRUISE:

@@ -943,6 +943,48 @@ void Plane::do_eight_plane()
     }
 }
 
+void Plane::do_loiter_3d()
+{
+    float LOCATION_SCALING_FACTOR_INV = 89.83204953368922;
+
+    cross_section.phi_plane = radians(20);
+    cross_section.theta_plane = radians(0);
+
+    cross_section.distance = 50;
+
+    cross_section.sphere_radius = 70;
+
+    float cos_phi = cosf(cross_section.phi_plane);
+    float cos_theta = cosf(cross_section.theta_plane);
+    float sin_phi = sinf(cross_section.phi_plane);
+    float sin_theta = sinf(cross_section.theta_plane);
+
+    cross_section.normal_vec.x = -sin_theta;
+    cross_section.normal_vec.y = sin_phi * cos_theta;
+    cross_section.normal_vec.z = cos_phi * cos_theta;
+
+    cross_section.circle_radius = sqrt(cross_section.sphere_radius * cross_section.sphere_radius - cross_section.distance * cross_section.distance);
+
+    cross_section.circle_center = home;
+    cross_section.circle_center.lat += cross_section.distance * cross_section.normal_vec.x * LOCATION_SCALING_FACTOR_INV;
+    cross_section.circle_center.lng += cross_section.distance * cross_section.normal_vec.y * LOCATION_SCALING_FACTOR_INV / longitude_scale(home);
+    cross_section.circle_center.alt += cross_section.distance * cross_section.normal_vec.z * LOCATION_SCALING_FACTOR_INV;
+
+    loiter.direction = 1;
+    /*
+    hal.console->println("home position");
+
+    hal.console->println("Lat");
+    hal.console->println(cross_section.circle_center.lat);
+
+    hal.console->println("Longitude");
+    hal.console->println(cross_section.circle_center.lng);
+
+    hal.console->println("Alt");
+    hal.console->println(cross_section.circle_center.alt);
+    */
+}
+
 void Plane::do_change_speed(const AP_Mission::Mission_Command& cmd)
 {
     switch (cmd.content.speed.speed_type)

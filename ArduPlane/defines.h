@@ -67,7 +67,7 @@ enum FlightMode {
     QLOITER       = 19,
     QLAND         = 20,
     EIGHT_PLANE   = 21,
-    WINDDRONE     = 22
+    LOITER_3D     = 22
 };
 
 // type of stick mixing enabled

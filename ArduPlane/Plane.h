@@ -660,9 +660,24 @@ private:
         // to which tp the velocity vector is pointing: v_axis, v_perp = ++ -> tp1, +- -> tp2, -- -> tp3, -+ -> tp4
         float v_axis;
         float v_perp;
-
     } eight;
 
+    struct {
+        // rotates e_x and e_y which span a plane
+        float phi_plane;        // rotate e_y around e_x in negative direction
+        float theta_plane;      // rotate e_x around rotated e_y in negative direction
+
+        float distance;    // distance between plane and origin in m
+
+        Vector3f normal_vec;    // normal vector, perpendicular to plane spanned by rotated e_y and e_x
+        struct Location circle_center;
+
+        float sphere_radius;    // radius of sphere in m
+        float circle_radius;    // radius of cross section between sphere and plane in m
+
+
+
+    } cross_section;
 
     // Conditional command
     // A value used in condition commands (eg delay, change alt, etc.)
@@ -874,6 +889,7 @@ private:
     bool verify_vtol_land(const AP_Mission::Mission_Command &cmd);
     void do_loiter_at_location();
     void do_eight_plane();
+    void do_loiter_3d();
     void do_take_picture();
     bool verify_loiter_heading(bool init);
     void log_picture();
@@ -920,6 +936,7 @@ private:
     void calc_gndspeed_undershoot();
     void update_loiter(uint16_t radius);
     void update_eight_plane();
+    void update_loiter_3d();
     void update_cruise();
     void update_fbwb_speed_height(void);
     void setup_turn_angle(void);
@@ -1014,7 +1031,6 @@ private:
     bool in_preLaunch_flight_stage(void);
     void gcs_send_text_fmt(MAV_SEVERITY severity, const char *fmt, ...);
     void handle_auto_mode(void);
-    void handle_winddrone_mode(void);
     void calc_throttle();
     void calc_nav_roll();
     void calc_nav_pitch();
