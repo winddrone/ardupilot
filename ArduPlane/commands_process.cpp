@@ -16,5 +16,9 @@ void Plane::update_commands(void)
             }
         }
     }
+
+    if(control_mode == WINDDRONE) {
+        // do something
+    }
 }
 

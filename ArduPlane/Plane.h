@@ -1014,6 +1014,7 @@ private:
     bool in_preLaunch_flight_stage(void);
     void gcs_send_text_fmt(MAV_SEVERITY severity, const char *fmt, ...);
     void handle_auto_mode(void);
+    void handle_winddrone_mode(void);
     void calc_throttle();
     void calc_nav_roll();
     void calc_nav_pitch();
