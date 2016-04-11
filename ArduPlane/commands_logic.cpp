@@ -959,19 +959,30 @@ void Plane::do_loiter_3d()
     float sin_phi = sinf(cross_section.phi_plane);
     float sin_theta = sinf(cross_section.theta_plane);
 
-    cross_section.normal_vec.x = -sin_theta;
-    cross_section.normal_vec.y = sin_phi * cos_theta;
-    cross_section.normal_vec.z = cos_phi * cos_theta;
+    cross_section.normal_vec.x = -cos_phi * sin_theta;
+    cross_section.normal_vec.y = sin_phi;
+    cross_section.normal_vec.z = -cos_phi * cos_theta;
 
-    cross_section.circle_radius = sqrt(cross_section.sphere_radius * cross_section.sphere_radius - cross_section.distance * cross_section.distance);
+    cross_section.circle_radius = sqrtf(cross_section.sphere_radius * cross_section.sphere_radius - cross_section.distance * cross_section.distance);
 
     cross_section.circle_center = home;
     cross_section.circle_center.lat += cross_section.distance * cross_section.normal_vec.x * LOCATION_SCALING_FACTOR_INV;
     cross_section.circle_center.lng += cross_section.distance * cross_section.normal_vec.y * LOCATION_SCALING_FACTOR_INV / longitude_scale(home);
     cross_section.circle_center.alt += cross_section.distance * cross_section.normal_vec.z * LOCATION_SCALING_FACTOR_INV;
 
+    cross_section.rot_matrix.a.x = cos_theta;
+    cross_section.rot_matrix.a.y = 0;
+    cross_section.rot_matrix.a.z = -sin_theta;
+    cross_section.rot_matrix.b.x = sin_phi * sin_theta;
+    cross_section.rot_matrix.b.y = cos_phi;
+    cross_section.rot_matrix.b.z = sin_phi * cos_theta;
+    cross_section.rot_matrix.c.x = cos_phi * sin_theta;
+    cross_section.rot_matrix.c.y = -sin_phi;
+    cross_section.rot_matrix.c.z = cos_phi * cos_theta;
+
     loiter.direction = 1;
-    /*
+
+    hal.console->println("Welcome to Loiter 3D");
     hal.console->println("home position");
 
     hal.console->println("Lat");
@@ -982,7 +993,7 @@ void Plane::do_loiter_3d()
 
     hal.console->println("Alt");
     hal.console->println(cross_section.circle_center.alt);
-    */
+
 }
 
 void Plane::do_change_speed(const AP_Mission::Mission_Command& cmd)

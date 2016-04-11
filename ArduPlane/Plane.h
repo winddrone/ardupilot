@@ -664,10 +664,10 @@ private:
 
     struct {
         // rotates e_x and e_y which span a plane
-        float phi_plane;        // rotate e_y around e_x in negative direction
-        float theta_plane;      // rotate e_x around rotated e_y in negative direction
+        float phi_plane;
+        float theta_plane;
 
-        float distance;    // distance between plane and origin in m
+        float distance;         // distance between plane and origin in m
 
         Vector3f normal_vec;    // normal vector, perpendicular to plane spanned by rotated e_y and e_x
         struct Location circle_center;
@@ -675,6 +675,7 @@ private:
         float sphere_radius;    // radius of sphere in m
         float circle_radius;    // radius of cross section between sphere and plane in m
 
+        Matrix3f rot_matrix;    // describes an earth frame vector in the new frame
 
 
     } cross_section;

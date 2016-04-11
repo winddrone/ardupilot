@@ -149,6 +149,13 @@ Vector2f location_diff(const struct Location &loc1, const struct Location &loc2)
                     (loc2.lng - loc1.lng) * LOCATION_SCALING_FACTOR * longitude_scale(loc1));
 }
 
+Vector3f location_diff_3d(const struct Location &loc1, const struct Location &loc2)
+{
+    return Vector3f((loc2.lat - loc1.lat) * LOCATION_SCALING_FACTOR,
+                    (loc2.lng - loc1.lng) * LOCATION_SCALING_FACTOR * longitude_scale(loc1),
+                     loc2.alt - loc2.alt);
+}
+
 /*
   wrap an angle in centi-degrees to 0..35999
  */

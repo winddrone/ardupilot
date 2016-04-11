@@ -54,6 +54,7 @@ void        location_offset(struct Location &loc, float ofs_north, float ofs_eas
  */
 Vector2f    location_diff(const struct Location &loc1, const struct Location &loc2);
 
+Vector3f    location_diff_3d(const struct Location &loc1, const struct Location &loc2);
 /*
  * check if lat and lng match. Ignore altitude and options
  */

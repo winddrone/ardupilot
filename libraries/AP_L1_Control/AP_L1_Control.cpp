@@ -566,7 +566,7 @@ void AP_L1_Control::update_eight_plane(const struct Location &center_WP, float r
      */
 }
 
-void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float radius, int8_t loiter_direction)
+void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float radius, int8_t loiter_direction, Matrix3f M_pg)
 {
     struct Location _current_loc;
 
@@ -576,26 +576,25 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
     float Kv = 2.0f * _L1_damping * omega;
 
 
-    //Get current position and velocity
+    // Get current position and velocity
     _ahrs.get_position(_current_loc);
 
-    Vector2f _groundspeed_vector = _ahrs.groundspeed_vector();
+    // track velocity in earth frame
+    Vector3f _track_vel_ef;
+    _ahrs.get_velocity_NED(_track_vel_ef);
 
-    //Calculate groundspeed
-    float groundSpeed = MAX(_groundspeed_vector.length() , 1.0f);
+    Vector3f _track_vel_pf = M_pf * _track_vel_ef; // track velocity in plane frame
+    Vector2f _track_vel; // projection of track velocity in xy plane of plane frame
+    _track_vel.x = _track_vel_pf.x;
+    _track_vel.y = _track_vel_pf.y;
 
+    // ulate the NED position of the aircraft relative to WP A
+    Vector3f A_air_ef = location_diff_3d(center_WP, _current_loc);
+    Vector3f A_air_pf = M_pg * A_air; // position of the aircraft in the plane frame
 
-    // update _target_bearing_cd
-    _target_bearing_cd = get_bearing_cd(_current_loc, center_WP);
-
-
-    // Calculate time varying control parameters
-    // Calculate the L1 length required for specified period
-    // 0.3183099 = 1/pi
-    _L1_dist = 0.3183099f * _L1_damping * _L1_period * groundSpeed;
-
-    //Calculate the NE position of the aircraft relative to WP A
-    Vector2f A_air = location_diff(center_WP, _current_loc);
+    Vector2f A_air; // projection of A_air_pf in xy plane of plane frame
+    A_air.x = A_air_pf.x;
+    A_air.y = A_air_pf.y;
 
     // Calculate the unit vector from WP A to aircraft
     // protect against being on the waypoint and having zero velocity
@@ -605,25 +604,17 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
     if (A_air.length() > 0.1f) {
         A_air_unit = A_air.normalized();
     } else {
-        if (_groundspeed_vector.length() < 0.1f) {
+        if (_track_vel.length() < 0.1f) {
             A_air_unit = Vector2f(cosf(_ahrs.yaw), sinf(_ahrs.yaw));
         } else {
-            A_air_unit = _groundspeed_vector.normalized();
+            A_air_unit = _track_vel.normalized();
         }
     }
 
     //Calculate Nu to capture center_WP
-    float xtrackVelCap = A_air_unit % _groundspeed_vector; // Velocity across line - perpendicular to radial inbound to WP
-    float ltrackVelCap = - (_groundspeed_vector * A_air_unit); // Velocity along line - radial inbound to WP
-    float Nu = atan2f(xtrackVelCap,ltrackVelCap);
+    float xtrackVelCap = A_air_unit % _track_vel; // Velocity across line - perpendicular to radial inbound to WP
+    float ltrackVelCap = - (_track_vel_ef* A_air_unit); // Velocity along line - radial inbound to WP
 
-    _prevent_indecision(Nu);
-    _last_Nu = Nu;
-
-    Nu = constrain_float(Nu, -M_PI_2, M_PI_2); //Limit Nu to +- Pi/2
-
-    //Calculate lat accln demand to capture center_WP (use L1 guidance law)
-    float latAccDemCap = K_L1 * groundSpeed * groundSpeed / _L1_dist * sinf(Nu);
 
     //Calculate radial position and velocity errors
     float xtrackVelCirc = -ltrackVelCap; // Radial outbound velocity - reuse previous radial inbound velocity
@@ -652,17 +643,11 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
     // Perform switchover between 'capture' and 'circle' modes at the
     // point where the commands cross over to achieve a seamless transfer
     // Only fly 'capture' mode if outside the circle
-    if (xtrackErrCirc > 0.0f && loiter_direction * latAccDemCap < loiter_direction * latAccDemCirc) {
-        _latAccDem = latAccDemCap;
-        _WPcircle = false;
-        _bearing_error = Nu; // angle between demanded and achieved velocity vector, +ve to left of track
-        _nav_bearing = atan2f(-A_air_unit.y , -A_air_unit.x); // bearing (radians) from AC to L1 point
-    } else {
-        _latAccDem = latAccDemCirc;
-        _WPcircle = true;
-        _bearing_error = 0.0f; // bearing error (radians), +ve to left of track
-        _nav_bearing = atan2f(-A_air_unit.y , -A_air_unit.x); // bearing (radians)from AC to L1 point
-    }
+
+    _latAccDem = latAccDemCirc;
+    _WPcircle = true;
+    _bearing_error = 0.0f; // bearing error (radians), +ve to left of track
+    _nav_bearing = atan2f(-A_air_unit.y , -A_air_unit.x); // bearing (radians)from AC to L1 point
 }
 
 // update L1 control for heading hold navigation
