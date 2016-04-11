@@ -131,8 +131,8 @@ const AP_Param::Info Plane::var_info[] = {
 
     // @Param: AUTO_FBW_STEER
     // @DisplayName: Use FBWA steering in AUTO
-    // @Description: When enabled this option gives FBWA navigation and steering in AUTO mode. This can be used to allow manual stabilised piloting with waypoint logic for triggering payloads. With this enabled the pilot has the same control over the plane as in FBWA mode, and the normal AUTO navigation is completely disabled. This option is not recommended for normal use.
-    // @Values: 0:Disabled,1:Enabled
+    // @Description: When enabled this option gives FBWA navigation and steering in AUTO mode. This can be used to allow manual stabilised piloting with waypoint logic for triggering payloads. With this enabled the pilot has the same control over the plane as in FBWA mode, and the normal AUTO navigation is completely disabled. THIS OPTION IS NOT RECOMMENDED FOR NORMAL USE.
+    // @Values: 0:Disabled,42:Enabled
     // @User: Advanced
     GSCALAR(auto_fbw_steer,          "AUTO_FBW_STEER",   0),
 
@@ -1383,5 +1383,11 @@ void Plane::load_parameters(void)
     // Load all auto-loaded EEPROM variables
     AP_Param::load_all();
     AP_Param::convert_old_parameters(&conversion_table[0], ARRAY_SIZE(conversion_table));
+
+    if (quadplane.enable) {
+        // quadplanes needs a higher loop rate
+        AP_Param::set_default_by_name("SCHED_LOOP_RATE", 300);
+    }
+    
     cliSerial->printf("load_all took %uus\n", (unsigned)(micros() - before));
 }
