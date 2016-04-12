@@ -667,6 +667,8 @@ private:
         float phi_plane;
         float theta_plane;
 
+        int32_t eta_plane;
+
         float distance;         // distance between plane and origin in m
 
         Vector3f normal_vec;    // normal vector, perpendicular to plane spanned by rotated e_y and e_x
@@ -674,6 +676,8 @@ private:
 
         float sphere_radius;    // radius of sphere in m
         float circle_radius;    // radius of cross section between sphere and plane in m
+
+        float bearing_min;      // bearing of minimal point of circle
 
         Matrix3f rot_matrix;    // describes an earth frame vector in the new frame
 
@@ -1035,6 +1039,8 @@ private:
     void calc_throttle();
     void calc_nav_roll();
     void calc_nav_pitch();
+    void loiter3d_calc_nav_roll();
+    void loiter3d_calc_nav_pitch();
     void update_flight_stage();
     void update_navigation();
     void set_flight_stage(AP_SpdHgtControl::FlightStage fs);

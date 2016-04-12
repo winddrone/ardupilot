@@ -518,6 +518,28 @@ void Plane::calc_nav_roll()
     nav_roll_cd = constrain_int32(nav_roll_cd, -roll_limit_cd, roll_limit_cd);
 }
 
+void Plane::loiter3d_calc_nav_pitch()
+{
+    // Calculate the Pitch of the plane
+    // --------------------------------
+    nav_pitch_cd = /*SpdHgt_Controller->get_pitch_demand() - */-loiter.direction*sinf(radians(nav_controller->nav_bearing_cd()/100))*cross_section.eta_plane;
+    nav_pitch_cd = constrain_int32(nav_pitch_cd, pitch_limit_min_cd, aparm.pitch_limit_max_cd.get());
+    //hal.console->println("pitch");
+   // hal.console->println(nav_pitch_cd);
+}
+
+
+/*
+  calculate a new nav_roll_cd from the navigation controller
+ */
+void Plane::loiter3d_calc_nav_roll()
+{
+    nav_roll_cd = nav_controller->nav_roll_cd() + loiter.direction*cosf(radians(nav_controller->nav_bearing_cd()/100))*cross_section.eta_plane;
+    update_load_factor();
+    nav_roll_cd = constrain_int32(nav_roll_cd, -roll_limit_cd, roll_limit_cd);
+    //hal.console->println("roll");
+    //hal.console->println(nav_roll_cd);
+}
 
 /*****************************************
 * Throttle slew limit
@@ -1214,6 +1236,8 @@ bool Plane::allow_reverse_thrust(void)
     case EIGHT_PLANE:
         allow |= (g.use_reverse_thrust & USE_REVERSE_THRUST_LOITER);
         break;
+    case LOITER_3D:
+        // have to finish it
     case RTL:
         allow |= (g.use_reverse_thrust & USE_REVERSE_THRUST_RTL);
         break;

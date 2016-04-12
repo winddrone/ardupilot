@@ -50,6 +50,7 @@ void Plane::failsafe_short_on_event(enum failsafe_state fstype)
         }
         break;
 
+    case LOITER_3D: // not finished
     case CIRCLE:
     case RTL:
     case QLAND:
@@ -109,6 +110,7 @@ void Plane::failsafe_long_on_event(enum failsafe_state fstype)
         }
         break;
 
+    case LOITER_3D: // not finished
     case RTL:
     case QLAND:
     default:

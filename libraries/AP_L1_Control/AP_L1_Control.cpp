@@ -566,7 +566,7 @@ void AP_L1_Control::update_eight_plane(const struct Location &center_WP, float r
      */
 }
 
-void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float radius, int8_t loiter_direction, Matrix3f M_pg)
+void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float radius, float bearing_min, int8_t loiter_direction, Matrix3f M_pg)
 {
     struct Location _current_loc;
 
@@ -575,6 +575,8 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
     float Kx = omega * omega;
     float Kv = 2.0f * _L1_damping * omega;
 
+    // Calculate L1 gain required for specified damping (used during waypoint capture)
+    float K_L1 = 4.0f * _L1_damping * _L1_damping;
 
     // Get current position and velocity
     _ahrs.get_position(_current_loc);
@@ -583,14 +585,24 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
     Vector3f _track_vel_ef;
     _ahrs.get_velocity_NED(_track_vel_ef);
 
-    Vector3f _track_vel_pf = M_pf * _track_vel_ef; // track velocity in plane frame
+    Vector2f _groundspeed_vector;
+    _groundspeed_vector.x = _track_vel_ef.x;
+    _groundspeed_vector.y = _track_vel_ef.y;
+    float groundSpeed = MAX(_groundspeed_vector.length() , 1.0f);
+
+    Vector3f _track_vel_pf = M_pg * _track_vel_ef; // track velocity in plane frame
     Vector2f _track_vel; // projection of track velocity in xy plane of plane frame
     _track_vel.x = _track_vel_pf.x;
     _track_vel.y = _track_vel_pf.y;
 
-    // ulate the NED position of the aircraft relative to WP A
+    // Calculate time varying control parameters
+    // Calculate the L1 length required for specified period
+    // 0.3183099 = 1/pi
+    _L1_dist = 0.3183099f * _L1_damping * _L1_period * groundSpeed;
+
+    // Calculate the NED position of the aircraft relative to WP A
     Vector3f A_air_ef = location_diff_3d(center_WP, _current_loc);
-    Vector3f A_air_pf = M_pg * A_air; // position of the aircraft in the plane frame
+    Vector3f A_air_pf = M_pg * A_air_ef; // position of the aircraft in the plane frame
 
     Vector2f A_air; // projection of A_air_pf in xy plane of plane frame
     A_air.x = A_air_pf.x;
@@ -613,8 +625,17 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
 
     //Calculate Nu to capture center_WP
     float xtrackVelCap = A_air_unit % _track_vel; // Velocity across line - perpendicular to radial inbound to WP
-    float ltrackVelCap = - (_track_vel_ef* A_air_unit); // Velocity along line - radial inbound to WP
+    float ltrackVelCap = - (_track_vel * A_air_unit); // Velocity along line - radial inbound to WP
 
+    float Nu = atan2f(xtrackVelCap,ltrackVelCap);
+
+    _prevent_indecision(Nu);
+    _last_Nu = Nu;
+
+    Nu = constrain_float(Nu, -M_PI_2, M_PI_2); //Limit Nu to +- Pi/2
+
+    //Calculate lat accln demand to capture center_WP (use L1 guidance law)
+    float latAccDemCap = K_L1 * groundSpeed * groundSpeed / _L1_dist * sinf(Nu);
 
     //Calculate radial position and velocity errors
     float xtrackVelCirc = -ltrackVelCap; // Radial outbound velocity - reuse previous radial inbound velocity
@@ -643,11 +664,26 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
     // Perform switchover between 'capture' and 'circle' modes at the
     // point where the commands cross over to achieve a seamless transfer
     // Only fly 'capture' mode if outside the circle
+    if (xtrackErrCirc > 0.0f && loiter_direction * latAccDemCap < loiter_direction * latAccDemCirc) {
+        _latAccDem = latAccDemCap;
+        _WPcircle = false;
+        _bearing_error = Nu; // angle between demanded and achieved velocity vector, +ve to left of track
+        _nav_bearing = 0;
+        hal.console->println("nav_bearing");
+        hal.console->println(_nav_bearing);
+        hal.console->println("latAccDemCap");
+        hal.console->println(_latAccDem);
+    } else {
+        _latAccDem = latAccDemCirc;
+        _WPcircle = true;
+        _bearing_error = 0.0f; // bearing error (radians), +ve to left of track
+        _nav_bearing = wrap_2PI(atan2f(A_air_unit.y , A_air_unit.x) - bearing_min); // bearing (radians)from AC to Minimum point of circle
+        hal.console->println("nav_bearing");
+        hal.console->println(_nav_bearing);
+        hal.console->println("latAccDemCirc");
+        hal.console->println(_latAccDem);
+    }
 
-    _latAccDem = latAccDemCirc;
-    _WPcircle = true;
-    _bearing_error = 0.0f; // bearing error (radians), +ve to left of track
-    _nav_bearing = atan2f(-A_air_unit.y , -A_air_unit.x); // bearing (radians)from AC to L1 point
 }
 
 // update L1 control for heading hold navigation

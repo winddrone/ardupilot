@@ -980,9 +980,17 @@ void Plane::do_loiter_3d()
     cross_section.rot_matrix.c.y = -sin_phi;
     cross_section.rot_matrix.c.z = cos_phi * cos_theta;
 
+    cross_section.bearing_min = atan2f(sin_phi*cos_theta, -sin_theta);
+
+    cross_section.eta_plane = 100*degrees(acosf(-cos_phi*cos_theta));
+    if(cross_section.eta_plane > 9000) cross_section.eta_plane -= 18000; // wrap eta from -9000 to + 9000 cd
+
     loiter.direction = 1;
 
     hal.console->println("Welcome to Loiter 3D");
+    hal.console->println("Bearing min");
+    hal.console->println(cross_section.bearing_min);
+
     hal.console->println("home position");
 
     hal.console->println("Lat");
@@ -992,7 +1000,7 @@ void Plane::do_loiter_3d()
     hal.console->println(cross_section.circle_center.lng);
 
     hal.console->println("Alt");
-    hal.console->println(cross_section.circle_center.alt);
+    hal.console->println(cross_section.circle_center.alt - home.alt);
 
 }
 

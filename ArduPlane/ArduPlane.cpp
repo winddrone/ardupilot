@@ -558,7 +558,9 @@ void Plane::update_flight_mode(void)
         break;
 
     case LOITER_3D:
-        // code
+        loiter3d_calc_nav_roll();
+        loiter3d_calc_nav_pitch();
+        calc_throttle();
         break;
 
     case RTL:

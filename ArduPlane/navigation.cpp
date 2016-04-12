@@ -177,7 +177,7 @@ void Plane::update_eight_plane()
 void Plane::update_loiter_3d()
 {
 
-    nav_controller->update_loiter_3d(cross_section.circle_center, cross_section.circle_radius, loiter.direction, cross_section.rot_matrix);
+    nav_controller->update_loiter_3d(cross_section.circle_center, cross_section.circle_radius, cross_section.bearing_min, loiter.direction, cross_section.rot_matrix);
 
 }
 
