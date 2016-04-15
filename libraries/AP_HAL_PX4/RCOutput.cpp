@@ -18,6 +18,12 @@ extern const AP_HAL::HAL& hal;
 
 using namespace PX4;
 
+/*
+  enable RCOUT_DEBUG_LATENCY to measure output latency using a logic
+  analyser. AUX6 will go high during the cork/push output. 
+ */
+#define RCOUT_DEBUG_LATENCY 0
+
 void PX4RCOutput::init()
 {
     _perf_rcout = perf_alloc(PC_ELAPSED, "APM_rcout");
@@ -151,6 +157,10 @@ void PX4RCOutput::set_freq(uint32_t chmask, uint16_t freq_hz)
     if (freq_hz > 400) {
         freq_hz = 400;
     }
+    if (freq_hz == 400) {
+        // remember mask for fast channels
+        _fast_channel_mask = chmask;
+    }
     uint32_t primary_mask = chmask & ((1UL<<_servo_count)-1);
     uint32_t alt_mask = chmask >> _servo_count;
     if (primary_mask && _pwm_fd != -1) {
@@ -244,7 +254,7 @@ void PX4RCOutput::force_safety_off(void)
 
 void PX4RCOutput::write(uint8_t ch, uint16_t period_us)
 {
-    if (ch >= _servo_count + _alt_servo_count) {
+    if (ch >= PX4_NUM_OUTPUT_CHANNELS) {
         return;
     }
     if (!(_enabled_channels & (1U<<ch))) {
@@ -369,7 +379,7 @@ void PX4RCOutput::_publish_actuators(void)
     }
 }
 
-void PX4RCOutput::_timer_tick(void)
+void PX4RCOutput::_send_outputs(void)
 {
     uint32_t now = AP_HAL::micros();
 
@@ -408,7 +418,9 @@ void PX4RCOutput::_timer_tick(void)
                 if (n > _alt_servo_count) {
                     n = _alt_servo_count;
                 }
-                ::write(_alt_fd, &_period[_servo_count], n*sizeof(_period[0]));
+                if (n > 0) {
+                    ::write(_alt_fd, &_period[_servo_count], n*sizeof(_period[0]));
+                }
             }
         }
 
@@ -429,6 +441,63 @@ update_pwm:
         }
     }
 
+}
+
+void PX4RCOutput::cork()
+{
+#if RCOUT_DEBUG_LATENCY
+    hal.gpio->pinMode(55, HAL_GPIO_OUTPUT);
+    hal.gpio->write(55, 1);
+#endif
+    _corking = true;
+}
+
+void PX4RCOutput::push()
+{
+#if RCOUT_DEBUG_LATENCY
+    hal.gpio->pinMode(55, HAL_GPIO_OUTPUT);
+    hal.gpio->write(55, 0);
+#endif
+    _corking = false;
+    if (_output_mode == MODE_PWM_ONESHOT) {
+        // run timer immediately in oneshot mode
+        _send_outputs();
+        if (_fast_channel_mask != 0) {
+            // this is a crude way of triggering immediate output
+            _trigger_fast_output();
+        }
+    }
+}
+
+void PX4RCOutput::_timer_tick(void)
+{
+    if (_output_mode != MODE_PWM_ONESHOT) {
+        _send_outputs();
+    }
+}
+
+/*
+  trigger immediate output on fast channels. This only works on FMU,
+  not IO. It takes advantage of the way the rate update works on FMU
+  to trigger a oneshot output
+ */
+void PX4RCOutput::_trigger_fast_output(void)
+{
+    uint32_t primary_mask = _fast_channel_mask & ((1UL<<_servo_count)-1);
+    uint32_t alt_mask = _fast_channel_mask >> _servo_count;    
+    if (_alt_fd == -1) {
+        // we're on a FMU only board
+        if (primary_mask) {
+            set_freq_fd(_pwm_fd, primary_mask, 400);
+            set_freq_fd(_pwm_fd, primary_mask, 0);
+        }
+    } else {
+        // we're on a board with px4io
+        if (alt_mask) {
+            set_freq_fd(_alt_fd, alt_mask, 400);
+            set_freq_fd(_alt_fd, alt_mask, 0);
+        }
+    }
 }
 
 #endif // CONFIG_HAL_BOARD
