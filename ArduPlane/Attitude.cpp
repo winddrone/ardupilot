@@ -522,7 +522,7 @@ void Plane::loiter3d_calc_nav_pitch()
 {
     // Calculate the Pitch of the plane
     // --------------------------------
-    nav_pitch_cd = /*SpdHgt_Controller->get_pitch_demand() - */-loiter.direction*sinf(radians(nav_controller->nav_bearing_cd()/100))*cross_section.eta_plane;
+    nav_pitch_cd = SpdHgt_Controller->get_pitch_demand(); //-loiter.direction*sinf(radians(nav_controller->nav_bearing_cd()/100))*cross_section.eta_plane;
     nav_pitch_cd = constrain_int32(nav_pitch_cd, pitch_limit_min_cd, aparm.pitch_limit_max_cd.get());
     //hal.console->println("pitch");
    // hal.console->println(nav_pitch_cd);
@@ -534,7 +534,7 @@ void Plane::loiter3d_calc_nav_pitch()
  */
 void Plane::loiter3d_calc_nav_roll()
 {
-    nav_roll_cd = nav_controller->nav_roll_cd() + loiter.direction*cosf(radians(nav_controller->nav_bearing_cd()/100))*cross_section.eta_plane;
+    nav_roll_cd = nav_controller->nav_roll_cd(); //+ loiter.direction*cosf(radians(nav_controller->nav_bearing_cd()/100))*cross_section.eta_plane;
     update_load_factor();
     nav_roll_cd = constrain_int32(nav_roll_cd, -roll_limit_cd, roll_limit_cd);
     //hal.console->println("roll");

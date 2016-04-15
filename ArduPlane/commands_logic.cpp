@@ -987,6 +987,9 @@ void Plane::do_loiter_3d()
 
     loiter.direction = 1;
 
+    cross_section.vector_scale = cross_section.circle_radius/sqrtf(sin_theta*sin_theta + sin_phi*sin_phi*cos_theta*cos_theta);
+
+
     hal.console->println("Welcome to Loiter 3D");
     hal.console->println("Bearing min");
     hal.console->println(cross_section.bearing_min);

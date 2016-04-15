@@ -566,7 +566,7 @@ void AP_L1_Control::update_eight_plane(const struct Location &center_WP, float r
      */
 }
 
-void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float radius, float bearing_min, int8_t loiter_direction, Matrix3f M_pg)
+void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float radius, float bearing_min, int8_t loiter_direction, Matrix3f M_pg, int32_t &height)
 {
     struct Location _current_loc;
 
@@ -623,6 +623,13 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
         }
     }
 
+    Vector3f A_air_unit_ef;         // calculate height of position on circle
+    A_air_unit_ef.x = A_air_unit.x;
+    A_air_unit_ef.y = A_air_unit.y;
+    A_air_unit_ef.z = 0;
+    A_air_unit_ef = M_pg.transposed() * A_air_unit_ef;
+    height = 0;
+
     //Calculate Nu to capture center_WP
     float xtrackVelCap = A_air_unit % _track_vel; // Velocity across line - perpendicular to radial inbound to WP
     float ltrackVelCap = - (_track_vel * A_air_unit); // Velocity along line - radial inbound to WP
@@ -669,19 +676,22 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
         _WPcircle = false;
         _bearing_error = Nu; // angle between demanded and achieved velocity vector, +ve to left of track
         _nav_bearing = 0;
-        hal.console->println("nav_bearing");
+        /*hal.console->println("nav_bearing");
         hal.console->println(_nav_bearing);
         hal.console->println("latAccDemCap");
-        hal.console->println(_latAccDem);
+        hal.console->println(_latAccDem);*/
     } else {
+        height = -int32_t(50*(A_air_unit_ef.z)); // has to be multiplied by cross_section.vector_scale
+        //hal.console->println("height");
+        //hal.console->println(height);
         _latAccDem = latAccDemCirc;
         _WPcircle = true;
         _bearing_error = 0.0f; // bearing error (radians), +ve to left of track
         _nav_bearing = wrap_2PI(atan2f(A_air_unit.y , A_air_unit.x) - bearing_min); // bearing (radians)from AC to Minimum point of circle
-        hal.console->println("nav_bearing");
+       /* hal.console->println("nav_bearing");
         hal.console->println(_nav_bearing);
         hal.console->println("latAccDemCirc");
-        hal.console->println(_latAccDem);
+        hal.console->println(_latAccDem);*/
     }
 
 }

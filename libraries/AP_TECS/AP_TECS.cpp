@@ -417,7 +417,7 @@ void AP_TECS::_update_speed_demand(void)
 
     // calculate velocity rate limits based on physical performance limits
     // provision to use a different rate limit if bad descent or underspeed condition exists
-    // Use 50% of maximum energy rate to allow margin for total energy contgroller
+    // Use 50% of maximum energy rate to allow margin for total energy controller
     float velRateMax;
     float velRateMin;
     if ((_flags.badDescent) || (_flags.underspeed))

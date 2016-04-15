@@ -679,8 +679,11 @@ private:
 
         float bearing_min;      // bearing of minimal point of circle
 
-        Matrix3f rot_matrix;    // describes an earth frame vector in the new frame
+        Matrix3f rot_matrix;    // describes an earth frame vector in the new plane frame
 
+        float vector_scale;     // scaling factor for vector which points to minimum
+
+        int32_t height;           // z position on circle
 
     } cross_section;
 
@@ -858,6 +861,7 @@ private:
     void set_target_altitude_current(void);
     void set_target_altitude_current_adjusted(void);
     void set_target_altitude_location(const Location &loc);
+    void set_target_altitude(int32_t height);
     int32_t relative_target_altitude_cm(void);
     void change_target_altitude(int32_t change_cm);
     void set_target_altitude_proportion(const Location &loc, float proportion);
