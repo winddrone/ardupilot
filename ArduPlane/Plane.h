@@ -663,29 +663,23 @@ private:
     } eight;
 
     struct {
-        // rotates e_x and e_y which span a plane
-        float phi_plane;
+        // rotates e_z and e_y
+        float psi_plane;
         float theta_plane;
 
-        int32_t eta_plane;
-
-        float distance;         // distance between plane and origin in m
+        float distance_cm;         // distance between plane and origin in cm
 
         Vector3f normal_vec;    // normal vector, perpendicular to plane spanned by rotated e_y and e_x
         struct Location circle_center;
 
-        float sphere_radius;    // radius of sphere in m
-        float circle_radius;    // radius of cross section between sphere and plane in m
+        int32_t sphere_radius_cm;    // radius of sphere in cm
+        int32_t circle_radius;    // radius of cross section between sphere and plane in m
 
-        float bearing_min;      // bearing of minimal point of circle
-
-        Matrix3f rot_matrix;    // describes an earth frame vector in the new plane frame
-
-        float vector_scale;     // scaling factor for vector which points to minimum
+        Matrix3f rot_matrix_pe;    // describes an earth frame vector in the new plane frame
 
         int32_t height;           // z position on circle
 
-    } cross_section;
+    } intersection;
 
     // Conditional command
     // A value used in condition commands (eg delay, change alt, etc.)

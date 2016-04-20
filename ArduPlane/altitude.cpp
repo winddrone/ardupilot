@@ -52,7 +52,7 @@ void Plane::adjust_altitude_target()
         set_target_altitude_location(next_WP_loc);
     }
     if (control_mode == LOITER_3D) {
-        set_target_altitude(cross_section.height);
+        set_target_altitude(intersection.height);
     }
 
     altitude_error_cm = calc_altitude_error_cm();
@@ -205,7 +205,12 @@ void Plane::set_target_altitude_location(const Location &loc)
 }
 
 void Plane::set_target_altitude(int32_t height){
-    target_altitude.amsl_cm = home.alt + cross_section.vector_scale * height + int32_t(100*cross_section.distance*cosf(cross_section.theta_plane)*cosf(cross_section.phi_plane));
+    target_altitude.amsl_cm = home.alt + height;
+    //hal.console->print("home alt: ");
+    //hal.console->println(home.alt);
+    //hal.console->print("height: ");
+    //hal.console->println(height);
+
 }
 
 /*
@@ -234,8 +239,8 @@ int32_t Plane::relative_target_altitude_cm(void)
     int32_t relative_alt = target_altitude.amsl_cm - home.alt;
     relative_alt += int32_t(g.alt_offset)*100;
     relative_alt += rangefinder_correction() * 100;
-    hal.console->println("Height on circle");
-    hal.console->println(relative_alt);
+    //hal.console->println("Height on circle");
+    //hal.console->println(relative_alt);
     return relative_alt;
 }
 

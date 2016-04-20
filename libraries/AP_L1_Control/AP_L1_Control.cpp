@@ -2,6 +2,8 @@
 
 #include <AP_HAL/AP_HAL.h>
 #include "AP_L1_Control.h"
+#include <fstream> // spaeter loeschen
+using namespace std; // spaeter loeschen
 
 extern const AP_HAL::HAL& hal;
 
@@ -320,10 +322,20 @@ void AP_L1_Control::update_loiter(const struct Location &center_WP, float radius
 	float ltrackVelCap = - (_groundspeed_vector * A_air_unit); // Velocity along line - radial inbound to WP
 	float Nu = atan2f(xtrackVelCap,ltrackVelCap);
 
+	hal.console->println("groundspeed");
+	hal.console->println(groundSpeed);
+	hal.console->println("ltrackVelCap");
+	hal.console->println(ltrackVelCap);
+	hal.console->println("xtrackVelCap");
+	hal.console->println(xtrackVelCap);
+
     _prevent_indecision(Nu);
     _last_Nu = Nu;
 
 	Nu = constrain_float(Nu, -M_PI_2, M_PI_2); //Limit Nu to +- Pi/2
+
+	hal.console->println("Nu");
+	hal.console->println(Nu);
 
 	//Calculate lat accln demand to capture center_WP (use L1 guidance law)
 	float latAccDemCap = K_L1 * groundSpeed * groundSpeed / _L1_dist * sinf(Nu);
@@ -566,7 +578,7 @@ void AP_L1_Control::update_eight_plane(const struct Location &center_WP, float r
      */
 }
 
-void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float radius, float bearing_min, int8_t loiter_direction, Matrix3f M_pg, int32_t &height)
+void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float radius, int8_t loiter_direction, Matrix3f M_pe, int32_t &height)
 {
     struct Location _current_loc;
 
@@ -590,7 +602,7 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
     _groundspeed_vector.y = _track_vel_ef.y;
     float groundSpeed = MAX(_groundspeed_vector.length() , 1.0f);
 
-    Vector3f _track_vel_pf = M_pg * _track_vel_ef; // track velocity in plane frame
+    Vector3f _track_vel_pf = M_pe * _track_vel_ef; // track velocity in plane frame
     Vector2f _track_vel; // projection of track velocity in xy plane of plane frame
     _track_vel.x = _track_vel_pf.x;
     _track_vel.y = _track_vel_pf.y;
@@ -602,7 +614,14 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
 
     // Calculate the NED position of the aircraft relative to WP A
     Vector3f A_air_ef = location_diff_3d(center_WP, _current_loc);
-    Vector3f A_air_pf = M_pg * A_air_ef; // position of the aircraft in the plane frame
+    Vector3f A_air_pf = M_pe * A_air_ef; // position of the aircraft in the plane frame
+
+    fstream f;
+    uint32_t now = AP_HAL::micros();
+    f.open("GPS.txt", ios::out | ios::app);
+    f << now << ", "<< A_air_ef.x << ", "<< A_air_ef.y << ", "<< A_air_ef.z << endl;
+    f.close();
+
 
     Vector2f A_air; // projection of A_air_pf in xy plane of plane frame
     A_air.x = A_air_pf.x;
@@ -623,16 +642,28 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
         }
     }
 
-    Vector3f A_air_unit_ef;         // calculate height of position on circle
-    A_air_unit_ef.x = A_air_unit.x;
-    A_air_unit_ef.y = A_air_unit.y;
-    A_air_unit_ef.z = 0;
-    A_air_unit_ef = M_pg.transposed() * A_air_unit_ef;
+    hal.console->println("A Air x");
+    hal.console->println(A_air_unit.x);
+    hal.console->println("A Air y");
+    hal.console->println(A_air_unit.y);
+
+    Vector3f Height_ef;         // calculate height of position on circle
+    Height_ef.x = radius * A_air_unit.x;
+    Height_ef.y = radius * A_air_unit.y;
+    Height_ef.z = -50;
+    Height_ef = M_pe.transposed() * Height_ef;
     height = 0;
 
     //Calculate Nu to capture center_WP
     float xtrackVelCap = A_air_unit % _track_vel; // Velocity across line - perpendicular to radial inbound to WP
-    float ltrackVelCap = - (_track_vel * A_air_unit); // Velocity along line - radial inbound to WP
+    float ltrackVelCap = -(_track_vel * A_air_unit); // Velocity along line - radial inbound to WP
+
+    /*hal.console->println("groundspeed");
+    hal.console->println(groundSpeed);
+    hal.console->println("ltrackVelCap");
+    hal.console->println(ltrackVelCap);
+    hal.console->println("xtrackVelCap");
+    hal.console->println(xtrackVelCap);*/
 
     float Nu = atan2f(xtrackVelCap,ltrackVelCap);
 
@@ -640,6 +671,9 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
     _last_Nu = Nu;
 
     Nu = constrain_float(Nu, -M_PI_2, M_PI_2); //Limit Nu to +- Pi/2
+
+    //hal.console->println("Nu");
+    //hal.console->println(Nu);
 
     //Calculate lat accln demand to capture center_WP (use L1 guidance law)
     float latAccDemCap = K_L1 * groundSpeed * groundSpeed / _L1_dist * sinf(Nu);
@@ -666,32 +700,34 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
     float latAccDemCircCtr = velTangent * velTangent / MAX((0.5f * radius), (radius + xtrackErrCirc));
 
     //Sum PD control and centripetal acceleration to calculate lateral manoeuvre demand
-    float latAccDemCirc = loiter_direction * (latAccDemCircPD + latAccDemCircCtr);
-
+    _nav_bearing = wrap_2PI(atan2f(A_air_unit.y , A_air_unit.x));
+    float latAccDemCirc = loiter_direction * (latAccDemCircPD + latAccDemCircCtr) * sinf(acosf(-cosf(_nav_bearing)*sinf(M_PI/9)));
+    // hal.console->println(sinf(acosf(-cosf(_nav_bearing)*sinf(M_PI/9))));
     // Perform switchover between 'capture' and 'circle' modes at the
     // point where the commands cross over to achieve a seamless transfer
     // Only fly 'capture' mode if outside the circle
     if (xtrackErrCirc > 0.0f && loiter_direction * latAccDemCap < loiter_direction * latAccDemCirc) {
+        height = center_WP.alt;
         _latAccDem = latAccDemCap;
         _WPcircle = false;
         _bearing_error = Nu; // angle between demanded and achieved velocity vector, +ve to left of track
         _nav_bearing = 0;
-        /*hal.console->println("nav_bearing");
-        hal.console->println(_nav_bearing);
-        hal.console->println("latAccDemCap");
-        hal.console->println(_latAccDem);*/
+        //hal.console->println("nav_bearing");
+        //hal.console->println(_nav_bearing);
+        //hal.console->println("latAccDemCap");
+        //hal.console->println(_latAccDem);
     } else {
-        height = -int32_t(50*(A_air_unit_ef.z)); // has to be multiplied by cross_section.vector_scale
+        height = -100*(Height_ef.z);
         //hal.console->println("height");
         //hal.console->println(height);
         _latAccDem = latAccDemCirc;
         _WPcircle = true;
         _bearing_error = 0.0f; // bearing error (radians), +ve to left of track
-        _nav_bearing = wrap_2PI(atan2f(A_air_unit.y , A_air_unit.x) - bearing_min); // bearing (radians)from AC to Minimum point of circle
-       /* hal.console->println("nav_bearing");
-        hal.console->println(_nav_bearing);
+        _nav_bearing = wrap_2PI(atan2f(A_air_unit.y , A_air_unit.x)); // bearing (radians)from AC to Minimum point of circle
+        //hal.console->println("nav_bearing");
+        //hal.console->println(_nav_bearing);
         hal.console->println("latAccDemCirc");
-        hal.console->println(_latAccDem);*/
+        hal.console->println(_latAccDem);
     }
 
 }

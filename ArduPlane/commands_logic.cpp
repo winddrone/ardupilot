@@ -947,63 +947,55 @@ void Plane::do_loiter_3d()
 {
     float LOCATION_SCALING_FACTOR_INV = 89.83204953368922;
 
-    cross_section.phi_plane = radians(20);
-    cross_section.theta_plane = radians(0);
+    intersection.psi_plane = radians(0);
+    intersection.theta_plane = radians(20);
 
-    cross_section.distance = 50;
+    intersection.distance_cm = 5000;
 
-    cross_section.sphere_radius = 70;
+    intersection.sphere_radius_cm = 7000;
 
-    float cos_phi = cosf(cross_section.phi_plane);
-    float cos_theta = cosf(cross_section.theta_plane);
-    float sin_phi = sinf(cross_section.phi_plane);
-    float sin_theta = sinf(cross_section.theta_plane);
+    float cos_psi = cosf(intersection.psi_plane);
+    float cos_theta = cosf(intersection.theta_plane);
+    float sin_psi = sinf(intersection.psi_plane);
+    float sin_theta = sinf(intersection.theta_plane);
 
-    cross_section.normal_vec.x = -cos_phi * sin_theta;
-    cross_section.normal_vec.y = sin_phi;
-    cross_section.normal_vec.z = -cos_phi * cos_theta;
+    intersection.normal_vec.x = - sin_theta * cos_psi;
+    intersection.normal_vec.y = - sin_theta * sin_psi;
+    intersection.normal_vec.z = - cos_theta;
 
-    cross_section.circle_radius = sqrtf(cross_section.sphere_radius * cross_section.sphere_radius - cross_section.distance * cross_section.distance);
+    intersection.circle_radius = sqrtf(intersection.sphere_radius_cm/100.0f * intersection.sphere_radius_cm/100.0f - intersection.distance_cm/100.0f * intersection.distance_cm/100.0f);
 
-    cross_section.circle_center = home;
-    cross_section.circle_center.lat += cross_section.distance * cross_section.normal_vec.x * LOCATION_SCALING_FACTOR_INV;
-    cross_section.circle_center.lng += cross_section.distance * cross_section.normal_vec.y * LOCATION_SCALING_FACTOR_INV / longitude_scale(home);
-    cross_section.circle_center.alt += cross_section.distance * cross_section.normal_vec.z * LOCATION_SCALING_FACTOR_INV;
+    intersection.circle_center = home;
+    intersection.circle_center.lat += intersection.distance_cm/100.0f * intersection.normal_vec.x * LOCATION_SCALING_FACTOR_INV;
+    intersection.circle_center.lng += intersection.distance_cm/100.0f * intersection.normal_vec.y * LOCATION_SCALING_FACTOR_INV / longitude_scale(home);
+    intersection.circle_center.alt += intersection.distance_cm/100.0f * intersection.normal_vec.z * LOCATION_SCALING_FACTOR_INV;
 
-    cross_section.rot_matrix.a.x = cos_theta;
-    cross_section.rot_matrix.a.y = 0;
-    cross_section.rot_matrix.a.z = -sin_theta;
-    cross_section.rot_matrix.b.x = sin_phi * sin_theta;
-    cross_section.rot_matrix.b.y = cos_phi;
-    cross_section.rot_matrix.b.z = sin_phi * cos_theta;
-    cross_section.rot_matrix.c.x = cos_phi * sin_theta;
-    cross_section.rot_matrix.c.y = -sin_phi;
-    cross_section.rot_matrix.c.z = cos_phi * cos_theta;
+    intersection.rot_matrix_pe.a.x = cos_theta * cos_psi;
+    intersection.rot_matrix_pe.a.y = cos_theta * sin_psi;
+    intersection.rot_matrix_pe.a.z = -sin_theta;
+    intersection.rot_matrix_pe.b.x = -sin_psi;
+    intersection.rot_matrix_pe.b.y = cos_psi;
+    intersection.rot_matrix_pe.b.z = 0;
+    intersection.rot_matrix_pe.c.x = sin_theta * cos_psi;
+    intersection.rot_matrix_pe.c.y = sin_theta * sin_psi;
+    intersection.rot_matrix_pe.c.z = cos_theta;
 
-    cross_section.bearing_min = atan2f(sin_phi*cos_theta, -sin_theta);
-
-    cross_section.eta_plane = 100*degrees(acosf(-cos_phi*cos_theta));
-    if(cross_section.eta_plane > 9000) cross_section.eta_plane -= 18000; // wrap eta from -9000 to + 9000 cd
 
     loiter.direction = 1;
 
-    cross_section.vector_scale = cross_section.circle_radius/sqrtf(sin_theta*sin_theta + sin_phi*sin_phi*cos_theta*cos_theta);
-
 
     hal.console->println("Welcome to Loiter 3D");
-    hal.console->println("Bearing min");
-    hal.console->println(cross_section.bearing_min);
 
     hal.console->println("home position");
 
     hal.console->println("Lat");
-    hal.console->println(cross_section.circle_center.lat);
+    hal.console->println(intersection.circle_center.lat);
 
     hal.console->println("Longitude");
-    hal.console->println(cross_section.circle_center.lng);
+    hal.console->println(intersection.circle_center.lng);
 
     hal.console->println("Alt");
-    hal.console->println(cross_section.circle_center.alt - home.alt);
+    hal.console->println(intersection.circle_center.alt - home.alt);
 
 }
 
