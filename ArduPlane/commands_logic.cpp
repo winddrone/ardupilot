@@ -947,12 +947,12 @@ void Plane::do_loiter_3d()
 {
     float LOCATION_SCALING_FACTOR_INV = 89.83204953368922;
 
-    intersection.psi_plane = radians(0);
-    intersection.theta_plane = radians(20);
+    intersection.psi_plane = radians(90);
+    intersection.theta_plane = radians(10);
 
-    intersection.distance_cm = 5000;
+    intersection.distance_cm = 8500;
 
-    intersection.sphere_radius_cm = 7000;
+    intersection.sphere_radius_cm = 10000;
 
     float cos_psi = cosf(intersection.psi_plane);
     float cos_theta = cosf(intersection.theta_plane);
@@ -968,7 +968,7 @@ void Plane::do_loiter_3d()
     intersection.circle_center = home;
     intersection.circle_center.lat += intersection.distance_cm/100.0f * intersection.normal_vec.x * LOCATION_SCALING_FACTOR_INV;
     intersection.circle_center.lng += intersection.distance_cm/100.0f * intersection.normal_vec.y * LOCATION_SCALING_FACTOR_INV / longitude_scale(home);
-    intersection.circle_center.alt += intersection.distance_cm/100.0f * intersection.normal_vec.z * LOCATION_SCALING_FACTOR_INV;
+    intersection.circle_center.alt -= intersection.distance_cm * intersection.normal_vec.z;
 
     intersection.rot_matrix_pe.a.x = cos_theta * cos_psi;
     intersection.rot_matrix_pe.a.y = cos_theta * sin_psi;

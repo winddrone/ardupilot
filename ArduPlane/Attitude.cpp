@@ -522,8 +522,8 @@ void Plane::loiter3d_calc_nav_pitch()
 {
     // Calculate the Pitch of the plane
     // --------------------------------
-    float nav_bearing = radians(nav_controller->nav_bearing_cd()/100);
-    nav_pitch_cd = - loiter.direction * sinf(nav_bearing) * degrees(intersection.theta_plane) * 100;
+    //float nav_bearing = radians(nav_controller->nav_bearing_cd()/100);
+    nav_pitch_cd = SpdHgt_Controller->get_pitch_demand(); //- loiter.direction * sinf(nav_bearing) * degrees(intersection.theta_plane) * 100;
     nav_pitch_cd = constrain_int32(nav_pitch_cd, -8000, 8000);
     //hal.console->println("nav_bearing");
     //hal.console->println(nav_bearing);

@@ -50,7 +50,10 @@ const AP_Param::GroupInfo AP_L1_Control::var_info[] = {
 int32_t AP_L1_Control::nav_roll_cd(void) const
 {
 	float ret;	
-	ret = cosf(_ahrs.pitch)*degrees(atanf(_latAccDem * 0.101972f) * 100.0f); // 0.101972 = 1/9.81
+	//ret = cosf(_ahrs.pitch)*degrees(atanf(_latAccDem * 0.101972f) * 100.0f); // 0.101972 = 1/9.81
+
+	ret = degrees(atanf(_latAccDem * 0.101972f/cosf(_ahrs.pitch)) * 100.0f); // my test code
+
 	ret = constrain_float(ret, -9000, 9000);
 	return ret;
 }
@@ -637,20 +640,22 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
     } else {
         if (_track_vel.length() < 0.1f) {
             A_air_unit = Vector2f(cosf(_ahrs.yaw), sinf(_ahrs.yaw));
+            hal.console->println("doppelmist");
         } else {
             A_air_unit = _track_vel.normalized();
+            hal.console->println("mist");
         }
     }
 
-    hal.console->println("A Air x");
-    hal.console->println(A_air_unit.x);
-    hal.console->println("A Air y");
-    hal.console->println(A_air_unit.y);
+    //hal.console->println("A Air x");
+    //hal.console->println(A_air_unit.x);
+    //hal.console->println("A Air y");
+    //hal.console->println(A_air_unit.y);
 
     Vector3f Height_ef;         // calculate height of position on circle
     Height_ef.x = radius * A_air_unit.x;
     Height_ef.y = radius * A_air_unit.y;
-    Height_ef.z = -50;
+    Height_ef.z = -85;
     Height_ef = M_pe.transposed() * Height_ef;
     height = 0;
 
@@ -707,7 +712,9 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
     // point where the commands cross over to achieve a seamless transfer
     // Only fly 'capture' mode if outside the circle
     if (xtrackErrCirc > 0.0f && loiter_direction * latAccDemCap < loiter_direction * latAccDemCirc) {
-        height = center_WP.alt;
+        height = 8500; //center_WP.alt - home.alt ;
+        //hal.console->println("height cap");
+        //hal.console->println(height);
         _latAccDem = latAccDemCap;
         _WPcircle = false;
         _bearing_error = Nu; // angle between demanded and achieved velocity vector, +ve to left of track
@@ -718,7 +725,7 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
         //hal.console->println(_latAccDem);
     } else {
         height = -100*(Height_ef.z);
-        //hal.console->println("height");
+        //hal.console->println("height circ");
         //hal.console->println(height);
         _latAccDem = latAccDemCirc;
         _WPcircle = true;
