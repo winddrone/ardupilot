@@ -28,7 +28,7 @@
 
    APMrover alpha version tester: Franco Borasio, Daniel Chapelat...
 
-   Please contribute your ideas! See http://dev.ardupilot.com for details
+   Please contribute your ideas! See http://dev.ardupilot.org for details
 */
 
 #include "Rover.h"
@@ -167,7 +167,6 @@ void Rover::ahrs_update()
 
     if (should_log(MASK_LOG_IMU)) {
         DataFlash.Log_Write_IMU(ins);
-        DataFlash.Log_Write_IMUDT(ins);
     }
 }
 
@@ -351,7 +350,7 @@ void Rover::update_GPS_50Hz(void)
         if (gps.last_message_time_ms(i) != last_gps_reading[i]) {
             last_gps_reading[i] = gps.last_message_time_ms(i);
             if (should_log(MASK_LOG_GPS)) {
-                DataFlash.Log_Write_GPS(gps, i, current_loc.alt);
+                DataFlash.Log_Write_GPS(gps, i);
             }
         }
     }
