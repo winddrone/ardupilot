@@ -5,7 +5,7 @@ from __future__ import print_function
 from waflib import Logs, Options, Utils
 from waflib.Build import BuildContext
 from waflib.Configure import conf
-import os.path
+import os.path, os
 
 SOURCE_EXTS = [
     '*.S',
@@ -49,6 +49,7 @@ COMMON_VEHICLE_DEPENDENT_LIBRARIES = [
     'GCS_MAVLink',
     'RC_Channel',
     'StorageManager',
+    'AP_Tuning',
 ]
 
 def _get_legacy_defines(sketch_name):
@@ -104,6 +105,7 @@ def ap_program(bld,
     if use_legacy_defines:
         kw['defines'].extend(_get_legacy_defines(bld.path.name))
 
+    kw['cxxflags'] = kw.get('cxxflags', []) + ['-include', 'ap_config.h']
     kw['features'] = kw.get('features', []) + bld.env.AP_PROGRAM_FEATURES
 
     program_groups = Utils.to_list(program_groups)
@@ -135,7 +137,7 @@ def ap_program(bld,
 @conf
 def ap_example(bld, **kw):
     kw['program_groups'] = 'examples'
-    ap_program(bld, **kw)
+    ap_program(bld, use_legacy_defines=False, **kw)
 
 # NOTE: Code in libraries/ is compiled multiple times. So ensure each
 # compilation is independent by providing different index for each.
@@ -167,6 +169,7 @@ def ap_stlib(bld, **kw):
         lib_sources = lib_node.ant_glob(SOURCE_EXTS + UTILITY_SOURCE_EXTS)
         sources.extend(lib_sources)
 
+    kw['cxxflags'] = kw.get('cxxflags', []) + ['-include', 'ap_config.h']
     kw['features'] = kw.get('features', []) + bld.env.AP_STLIB_FEATURES
     kw['source'] = sources
     kw['target'] = kw['name']
@@ -201,6 +204,20 @@ def ap_find_tests(bld, use=[]):
             use_legacy_defines=False,
             cxxflags=['-Wno-undef'],
         )
+
+_versions = []
+
+@conf
+def ap_version_append_str(ctx, k, v):
+    ctx.env['AP_VERSION_ITEMS'] += [(k, '"{}"'.format(os.environ.get(k, v)))]
+
+@conf
+def write_version_header(ctx, tgt):
+    with open(tgt, 'w') as f:
+        print('#pragma once\n', file=f)
+
+        for k, v in ctx.env['AP_VERSION_ITEMS']:
+            print('#define {} {}'.format(k, v), file=f)
 
 @conf
 def ap_find_benchmarks(bld, use=[]):

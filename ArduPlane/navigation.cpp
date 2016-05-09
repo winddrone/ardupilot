@@ -84,7 +84,7 @@ void Plane::navigate()
 
 void Plane::calc_airspeed_errors()
 {
-    float aspeed_cm = airspeed.get_airspeed_cm();
+    float airspeed_measured_cm = airspeed.get_airspeed_cm();
 
     // Normal airspeed target
     target_airspeed_cm = g.airspeed_cruise_cm;
@@ -98,11 +98,36 @@ void Plane::calc_airspeed_errors()
                              ((int32_t)aparm.airspeed_min * 100);
     }
 
+    // Landing airspeed target
+    if (control_mode == AUTO && ahrs.airspeed_sensor_enabled()) {
+        float land_airspeed = SpdHgt_Controller->get_land_airspeed();
+        switch (flight_stage) {
+        case AP_SpdHgtControl::FLIGHT_LAND_APPROACH:
+            if (land_airspeed >= 0) {
+                target_airspeed_cm = land_airspeed * 100;
+            }
+            break;
+
+        case AP_SpdHgtControl::FLIGHT_LAND_PREFLARE:
+        case AP_SpdHgtControl::FLIGHT_LAND_FINAL:
+            if (auto_state.land_pre_flare && aparm.land_pre_flare_airspeed > 0) {
+                // if we just preflared then continue using the pre-flare airspeed during final flare
+                target_airspeed_cm = aparm.land_pre_flare_airspeed * 100;
+            } else if (land_airspeed >= 0) {
+                target_airspeed_cm = land_airspeed * 100;
+            }
+            break;
+
+        default:
+            break;
+        }
+    }
+
     // Set target to current airspeed + ground speed undershoot,
     // but only when this is faster than the target airspeed commanded
     // above.
     if (control_mode >= FLY_BY_WIRE_B && (g.min_gndspeed_cm > 0)) {
-        int32_t min_gnd_target_airspeed = aspeed_cm + groundspeed_undershoot;
+        int32_t min_gnd_target_airspeed = airspeed_measured_cm + groundspeed_undershoot;
         if (min_gnd_target_airspeed > target_airspeed_cm)
             target_airspeed_cm = min_gnd_target_airspeed;
     }
@@ -118,7 +143,7 @@ void Plane::calc_airspeed_errors()
 
     // use the TECS view of the target airspeed for reporting, to take
     // account of the landing speed
-    airspeed_error_cm = SpdHgt_Controller->get_target_airspeed()*100 - aspeed_cm;
+    airspeed_error_cm = SpdHgt_Controller->get_target_airspeed()*100 - airspeed_measured_cm;
 }
 
 void Plane::calc_gndspeed_undershoot()
@@ -139,8 +164,12 @@ void Plane::update_loiter(uint16_t radius)
 {
     if (radius <= 1) {
         // if radius is <=1 then use the general loiter radius. if it's small, use default
-        radius = (abs(g.loiter_radius <= 1)) ? LOITER_RADIUS_DEFAULT : abs(g.loiter_radius);
-        loiter.direction = (g.loiter_radius < 0) ? -1 : 1;
+        radius = (abs(g.loiter_radius) <= 1) ? LOITER_RADIUS_DEFAULT : abs(g.loiter_radius);
+        if (next_WP_loc.flags.loiter_ccw == 1) {
+            loiter.direction = -1;
+        } else {
+            loiter.direction = (g.loiter_radius < 0) ? -1 : 1;
+        }
     }
 
     if (loiter.start_time_ms == 0 &&
@@ -231,7 +260,7 @@ void Plane::update_fbwb_speed_height(void)
         elevator_input = -elevator_input;
     }
     
-    change_target_altitude(g.flybywire_climb_rate * elevator_input * delta_us_fast_loop * 0.0001f);
+    change_target_altitude(g.flybywire_climb_rate * elevator_input * perf.delta_us_fast_loop * 0.0001f);
     
     if (is_zero(elevator_input) && !is_zero(last_elevator_input)) {
         // the user has just released the elevator, lock in

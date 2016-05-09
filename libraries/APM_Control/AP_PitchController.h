@@ -30,6 +30,11 @@ public:
 
 	static const struct AP_Param::GroupInfo var_info[];
 
+    AP_Float &kP(void) { return gains.P; }
+    AP_Float &kI(void) { return gains.I; }
+    AP_Float &kD(void) { return gains.D; }
+    AP_Float &kFF(void) { return gains.FF; }
+    
 private:
 	const AP_Vehicle::FixedWing &aparm;
     AP_AutoTune::ATGains gains;

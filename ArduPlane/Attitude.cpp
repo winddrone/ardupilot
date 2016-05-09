@@ -144,6 +144,7 @@ void Plane::stabilize_stick_mixing_direct()
         control_mode == QHOVER ||
         control_mode == QLOITER ||
         control_mode == QLAND ||
+        control_mode == QRTL ||
         control_mode == TRAINING) {
         return;
     }
@@ -167,8 +168,9 @@ void Plane::stabilize_stick_mixing_fbw()
         control_mode == QHOVER ||
         control_mode == QLOITER ||
         control_mode == QLAND ||
+        control_mode == QRTL ||
         control_mode == TRAINING ||
-        (control_mode == AUTO && g.auto_fbw_steer)) {
+        (control_mode == AUTO && g.auto_fbw_steer == 42)) {
         return;
     }
     // do FBW style stick mixing. We don't treat it linearly
@@ -367,7 +369,8 @@ void Plane::stabilize()
     } else if (control_mode == QSTABILIZE ||
                control_mode == QHOVER ||
                control_mode == QLOITER ||
-               control_mode == QLAND) {
+               control_mode == QLAND ||
+               control_mode == QRTL) {
         quadplane.control_run();
     } else {
         if (g.stick_mixing == STICK_MIXING_FBW && control_mode != STABILIZE) {
@@ -513,9 +516,8 @@ void Plane::calc_nav_pitch()
  */
 void Plane::calc_nav_roll()
 {
-    nav_roll_cd = nav_controller->nav_roll_cd();
+    nav_roll_cd = constrain_int32(nav_controller->nav_roll_cd(), -roll_limit_cd, roll_limit_cd);
     update_load_factor();
-    nav_roll_cd = constrain_int32(nav_roll_cd, -roll_limit_cd, roll_limit_cd);
 }
 
 void Plane::loiter3d_calc_nav_pitch()
@@ -603,12 +605,12 @@ void Plane::flap_slew_limit(int8_t &last_value, int8_t &new_value)
 */
 bool Plane::suppress_throttle(void)
 {
-    if (auto_throttle_mode && parachute.released()) {
-        // throttle always suppressed in auto-throttle modes after parachute release
+    if (auto_throttle_mode && parachute.release_initiated()) {
+        // throttle always suppressed in auto-throttle modes after parachute release initiated
         throttle_suppressed = true;
         return true;
     }
-    
+
     if (!throttle_suppressed) {
         // we've previously met a condition for unsupressing the throttle
         return false;
@@ -619,7 +621,7 @@ bool Plane::suppress_throttle(void)
         return false;
     }
 
-    if (control_mode==AUTO && g.auto_fbw_steer) {
+    if (control_mode==AUTO && g.auto_fbw_steer == 42) {
         // user has throttle control
         return false;
     }
@@ -1023,8 +1025,8 @@ void Plane::set_servos(void)
             // manual pass through of throttle while in GUIDED
             channel_throttle->radio_out = channel_throttle->radio_in;
         } else if (quadplane.in_vtol_mode()) {
-            // no forward throttle for now
-            channel_throttle->servo_out = 0;
+            // ask quadplane code for forward throttle
+            channel_throttle->servo_out = quadplane.forward_throttle_pct();
             channel_throttle->calc_pwm();
         } else {
             // normal throttle calculation based on servo_out
@@ -1097,7 +1099,8 @@ void Plane::set_servos(void)
     RC_Channel_aux::set_servo_out(RC_Channel_aux::k_flap, manual_flap_percent);
 
     if (control_mode >= FLY_BY_WIRE_B ||
-        quadplane.in_assisted_flight()) {
+        quadplane.in_assisted_flight() ||
+        quadplane.in_vtol_mode()) {
         /* only do throttle slew limiting in modes where throttle
          *  control is automatic */
         throttle_slew_limit(last_throttle);
@@ -1201,7 +1204,7 @@ bool Plane::allow_reverse_thrust(void)
     switch (control_mode) {
     case AUTO:
         {
-        uint8_t nav_cmd = mission.get_current_nav_cmd().id;
+        uint16_t nav_cmd = mission.get_current_nav_cmd().id;
 
         // never allow reverse thrust during takeoff
         if (nav_cmd == MAV_CMD_NAV_TAKEOFF) {

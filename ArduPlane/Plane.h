@@ -1,12 +1,7 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
-#pragma once
-
-#define THISFIRMWARE "ArduPlane V3.5.2"
-#define FIRMWARE_VERSION 3,5,2,FIRMWARE_VERSION_TYPE_OFFICIAL
-
 /*
    Lead developer: Andrew Tridgell
- 
+
    Authors:    Doug Weibel, Jose Julio, Jordi Munoz, Jason Short, Randy Mackay, Pat Hickey, John Arne Birkeland, Olivier Adler, Amilcar Lucas, Gregory Fletcher, Paul Riseborough, Brandon Jones, Jon Challinger, Tom Pittenger
    Thanks to:  Chris Anderson, Michael Oborne, Paul Mather, Bill Premerlani, James Cohen, JB from rotorFX, Automatik, Fefenin, Peter Meister, Remzibi, Yury Smirnov, Sandro Benigno, Max Levine, Roberto Navoni, Lorenz Meier, Yury MonZon
 
@@ -25,12 +20,13 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#pragma once
 
 ////////////////////////////////////////////////////////////////////////////////
 // Header includes
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <math.h>
+#include <cmath>
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -95,6 +91,7 @@
 #include <AP_ADSB/AP_ADSB.h>
 
 #include "quadplane.h"
+#include "tuning.h"
 
 // Configuration
 #include "config.h"
@@ -136,6 +133,7 @@ public:
     friend class Parameters;
     friend class AP_Arming_Plane;
     friend class QuadPlane;
+    friend class AP_Tuning_Plane;
 
     Plane(void);
 
@@ -169,7 +167,7 @@ private:
     // notification object for LEDs, buzzers etc (parameter set to false disables external leds)
     AP_Notify notify;
 
-    DataFlash_Class DataFlash{FIRMWARE_STRING};
+    DataFlash_Class DataFlash;
 
     // has a log download started?
     bool in_log_download;
@@ -343,6 +341,10 @@ private:
         uint32_t ch3_timer_ms;
         
         uint32_t last_valid_rc_ms;
+
+        //keeps track of the last valid rc as it relates to the AFS system
+        //Does not count rc inputs as valid if the standard failsafe is on
+        uint32_t AFS_last_valid_rc_ms;
     } failsafe;
 
     // A counter used to count down valid gps fixes to allow the gps estimate to settle
@@ -463,6 +465,9 @@ private:
         // Minimum pitch to hold during takeoff command execution.  Hundredths of a degree
         int16_t takeoff_pitch_cd;
 
+        // Begin leveling out the enforced takeoff pitch angle min at this height to reduce/eliminate overshoot
+        int32_t height_below_takeoff_to_level_off_cm;
+
         // the highest airspeed we have reached since entering AUTO. Used
         // to control ground takeoff
         float highest_airspeed;
@@ -514,6 +519,9 @@ private:
 
         // debounce timer
         uint32_t debounce_timer_ms;
+
+        // delay time for debounce to count to
+        uint32_t debounce_time_total_ms;
 
         // length of time impact_detected has been true. Times out after a few seconds. Used to clip isFlyingProbability
         uint32_t impact_timer_ms;
@@ -714,9 +722,6 @@ private:
     // The location of the active waypoint in Guided mode.
     struct Location guided_WP_loc {};
 
-    // special purpose command used only after mission completed to return vehicle to home or rally point
-    struct AP_Mission::Mission_Command auto_rtl_command;
-
     // Altitude control
     struct {
         // target altitude above sea level in cm. Used for barometric
@@ -745,23 +750,31 @@ private:
     // This is the time between calls to the DCM algorithm and is the Integration time for the gyros.
     float G_Dt = 0.02f;
 
-    // Performance monitoring
-    // Timer used to accrue data and trigger recording of the performanc monitoring log message
-    uint32_t perf_mon_timer = 0;
+    struct {
+        // Performance monitoring
+        // Timer used to accrue data and trigger recording of the performanc monitoring log message
+        uint32_t start_ms;
 
-    // The maximum and minimum main loop execution time recorded in the current performance monitoring interval
-    uint32_t G_Dt_max = 0;
-    uint32_t G_Dt_min = 0;
+        // The maximum and minimum main loop execution time recorded in the current performance monitoring interval
+        uint32_t G_Dt_max;
+        uint32_t G_Dt_min;
 
-    // System Timers
-    // Time in microseconds of start of main control loop
-    uint32_t fast_loopTimer_us = 0;
+        // System Timers
+        // Time in microseconds of start of main control loop
+        uint32_t fast_loopTimer_us;
 
-    // Number of milliseconds used in last main loop cycle
-    uint32_t delta_us_fast_loop = 0;
+        // Number of milliseconds used in last main loop cycle
+        uint32_t delta_us_fast_loop;
 
-    // Counter of main loop executions.  Used for performance monitoring and failsafe processing
-    uint16_t mainLoop_count = 0;
+        // Counter of main loop executions.  Used for performance monitoring and failsafe processing
+        uint16_t mainLoop_count;
+
+        // number of long loops
+        uint16_t num_long;
+
+        // accumulated lost log messages
+        uint32_t last_log_dropped;
+    } perf;
 
     // Camera/Antenna mount tracking and stabilisation stuff
 #if MOUNT == ENABLED
@@ -791,6 +804,11 @@ private:
     // support for quadcopter-plane
     QuadPlane quadplane{ahrs};
 
+    // support for transmitter tuning
+    AP_Tuning_Plane tuning;
+
+    static const struct LogStructure log_structure[];
+    
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
     // the crc of the last created PX4Mixer
     int32_t last_mixer_crc = -1;
@@ -805,6 +823,7 @@ private:
     void send_extended_status1(mavlink_channel_t chan);
     void send_location(mavlink_channel_t chan);
     void send_nav_controller_output(mavlink_channel_t chan);
+    void send_position_target_global_int(mavlink_channel_t chan);
     void send_servo_out(mavlink_channel_t chan);
     void send_radio_out(mavlink_channel_t chan);
     void send_vfr_hud(mavlink_channel_t chan);
@@ -852,6 +871,7 @@ private:
     int32_t get_RTL_altitude();
     float relative_altitude(void);
     int32_t relative_altitude_abs_cm(void);
+    float relative_ground_altitude(void);
     void set_target_altitude_current(void);
     void set_target_altitude_current_adjusted(void);
     void set_target_altitude_location(const Location &loc);
@@ -876,7 +896,7 @@ private:
     void set_guided_WP(void);
     void init_home();
     void update_home();
-    void do_RTL(void);
+    void do_RTL(int32_t alt);
     bool verify_takeoff();
     bool verify_loiter_unlim();
     bool verify_loiter_time();
@@ -885,7 +905,6 @@ private:
     bool verify_RTL();
     bool verify_continue_and_change_alt();
     bool verify_wait_delay();
-    bool verify_change_alt();
     bool verify_within_distance();
     bool verify_altitude_wait(const AP_Mission::Mission_Command &cmd);
     bool verify_vtol_takeoff(const AP_Mission::Mission_Command &cmd);
@@ -897,7 +916,6 @@ private:
     bool verify_loiter_heading(bool init);
     void log_picture();
     void exit_mission_callback();
-    void update_commands(void);
     void mavlink_delay(uint32_t ms);
     void read_control_switch();
     uint8_t readSwitch(void);
@@ -998,6 +1016,7 @@ private:
     void takeoff_calc_roll(void);
     void takeoff_calc_pitch(void);
     int8_t takeoff_tail_hold(void);
+    int16_t get_takeoff_pitch_min_cd(void);
     void print_hit_enter();
     void ahrs_update();
     void update_speed_height(void);
@@ -1077,7 +1096,6 @@ private:
     void do_vtol_land(const AP_Mission::Mission_Command& cmd);
     bool verify_nav_wp(const AP_Mission::Mission_Command& cmd);
     void do_wait_delay(const AP_Mission::Mission_Command& cmd);
-    void do_change_alt(const AP_Mission::Mission_Command& cmd);
     void do_within_distance(const AP_Mission::Mission_Command& cmd);
     void do_change_speed(const AP_Mission::Mission_Command& cmd);
     void do_set_home(const AP_Mission::Mission_Command& cmd);

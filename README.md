@@ -7,13 +7,13 @@
 [![Build Travis](https://travis-ci.org/ArduPilot/ardupilot.svg?branch=master)](https://travis-ci.org/ArduPilot/ardupilot)
 
 ### The ArduPilot project is made up of: ###
->>ArduCopter (or APM:Copter) : [code](https://github.com/ArduPilot/ardupilot/tree/master/ArduCopter), [wiki](http://copter.ardupilot.com)
+>>ArduCopter (or APM:Copter) : [code](https://github.com/ArduPilot/ardupilot/tree/master/ArduCopter), [wiki](http://ardupilot.org/copter/index.html)
 
->>ArduPlane (or APM:Plane) : [code](https://github.com/ArduPilot/ardupilot/tree/master/ArduPlane), [wiki](http://plane.ardupilot.org)
+>>ArduPlane (or APM:Plane) : [code](https://github.com/ArduPilot/ardupilot/tree/master/ArduPlane), [wiki](http://ardupilot.org/plane/index.html)
 
->>ArduRover (or APMrover2) : [code](https://github.com/ArduPilot/ardupilot/tree/master/APMrover2), [wiki](http://rover.ardupilot.org)
+>>ArduRover (or APMrover2) : [code](https://github.com/ArduPilot/ardupilot/tree/master/APMrover2), [wiki](http://ardupilot.org/rover/index.html)
 
->>Antenna Tracker : [code](https://github.com/ArduPilot/ardupilot/tree/master/AntennaTracker), [wiki](http://antennatracker.ardupilot.org)
+>>Antenna Tracker : [code](https://github.com/ArduPilot/ardupilot/tree/master/AntennaTracker), [wiki](http://ardupilot.org/antennatracker/index.html)
 
 ### User Support & Discussion Forums ###
 >>Support Forum: [http://discuss.ardupilot.org/](http://discuss.ardupilot.org/)
@@ -61,7 +61,7 @@
 ### Maintainers ###
 >> Ardupilot is comprised of several parts, vehicles and boards. The list below
 >> contains the people that regularly contribute to the project and are responsible
->> for reviewing patches on their specific area. See [CONTRIBUTING.md](CONTRIBUTING.md)
+>> for reviewing patches on their specific area. See [CONTRIBUTING.md](.github/CONTRIBUTING.md)
 >> for more information.
 >>
 >> - [Andrew Tridgell](https://github.com/tridge)
@@ -81,6 +81,7 @@
 >>   - ***Subsystem***: Linux
 >> - [Peter Barker](https://github.com/peterbarker)
 >>   - ***Subsystem***: DataFlash
+>>   - ***Subsystem***: Tools
 >> - [Michael du Breuil](https://github.com/WickedShell)
 >>   - ***Subsystem***: uBlox GPS
 >> - [Víctor Mayoral Vilches](https://github.com/vmayoral)
@@ -89,8 +90,6 @@
 >>   - ***Board***: BBBmini
 >> - [Georgii Staroselskii](https://github.com/staroselskii)
 >>   - ***Board***: NavIO
->> - [Víctor Mayoral Vilches](https://github.com/vmayoral)
->>   - ***Board***: Erle-Brain 2
 >> - [Emile Castelnuovo](https://github.com/emilecastelnuovo)
 >>   - ***Board***: VRBrain
 >> - [Mike McCauley](#)

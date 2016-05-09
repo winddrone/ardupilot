@@ -134,11 +134,6 @@ bool AP_L1_Control::reached_loiter_target(void)
 	return _WPcircle;
 }
 
-float AP_L1_Control::crosstrack_error(void) const
-{
-	return _crosstrack_error;
-}
-
 /**
    prevent indecision in our turning by using our previous turn
    decision if we are in a narrow angle band pointing away from the
@@ -149,7 +144,7 @@ void AP_L1_Control::_prevent_indecision(float &Nu)
     const float Nu_limit = 0.9f*M_PI;
     if (fabsf(Nu) > Nu_limit &&
         fabsf(_last_Nu) > Nu_limit &&
-        fabsf(wrap_180_cd(_target_bearing_cd - _ahrs.yaw_sensor)) > 12000 &&
+        labs(wrap_180_cd(_target_bearing_cd - _ahrs.yaw_sensor)) > 12000 &&
         Nu * _last_Nu < 0.0f) {
         // we are moving away from the target waypoint and pointing
         // away from the waypoint (not flying backwards). The sign
@@ -285,6 +280,8 @@ void AP_L1_Control::update_waypoint(const struct Location &prev_WP, const struct
 	_WPcircle = false;
 	
 	_bearing_error = Nu; // bearing error angle (radians), +ve to left of track
+
+	_data_is_stale = false; // status are correctly updated with current waypoint data
 }
 
 // update L1 control for loitering
@@ -406,6 +403,8 @@ void AP_L1_Control::update_loiter(const struct Location &center_WP, float radius
 	f.open("loiter.txt", ios::out | ios::app);
 	f << A_air.x << ", " << A_air.y << ", " << center_WP.alt << ", " << _current_loc.alt << endl;
 	f.close();*/
+    _data_is_stale = false; // status are correctly updated with current waypoint data
+
 }
 
 float AP_L1_Control::goto_loc_acc(const struct Location &center_WP, const struct Location &_current_loc, Vector2f _groundspeed_vector) {
@@ -807,6 +806,8 @@ void AP_L1_Control::update_heading_hold(int32_t navigation_heading_cd)
 	// Limit Nu to +-pi
 	Nu = constrain_float(Nu, -M_PI_2, M_PI_2);
 	_latAccDem = 2.0f*sinf(Nu)*VomegaA;
+
+    _data_is_stale = false; // status are correctly updated with current waypoint data
 }
 
 // update L1 control for level flight on current heading
@@ -822,4 +823,6 @@ void AP_L1_Control::update_level_flight(void)
 	_WPcircle = false;
 
 	_latAccDem = 0;
+
+    _data_is_stale = false; // status are correctly updated with current waypoint data
 }

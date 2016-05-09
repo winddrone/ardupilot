@@ -35,6 +35,9 @@ RC_Channel_aux::output_ch(void)
     case k_manual:              // manual
         radio_out = radio_in;
         break;
+    case k_rcin1 ... k_rcin16: // rc pass-thru
+        radio_out = hal.rcin->read(function-k_rcin1);
+        break;
     case k_motor1 ... k_motor8:
         // handled by AP_Motors::rc_write()
         return;
@@ -309,6 +312,23 @@ RC_Channel_aux::set_servo_out(RC_Channel_aux::Aux_servo_function_t function, int
   setup failsafe value for an auxiliary function type to a LimitValue
  */
 void
+RC_Channel_aux::set_servo_failsafe_pwm(RC_Channel_aux::Aux_servo_function_t function, uint16_t pwm)
+{
+    if (!function_assigned(function)) {
+        return;
+    }
+    for (uint8_t i = 0; i < RC_AUX_MAX_CHANNELS; i++) {
+        const RC_Channel_aux *ch = _aux_channels[i];
+        if (ch && ch->function.get() == function) {
+            hal.rcout->set_failsafe_pwm(1U<<ch->get_ch_out(), pwm);
+        }
+    }
+}
+
+/*
+  setup failsafe value for an auxiliary function type to a LimitValue
+ */
+void
 RC_Channel_aux::set_servo_failsafe(RC_Channel_aux::Aux_servo_function_t function, RC_Channel::LimitValue limit)
 {
     if (!function_assigned(function)) {
@@ -340,6 +360,10 @@ RC_Channel_aux::set_servo_limit(RC_Channel_aux::Aux_servo_function_t function, R
             if (ch->function.get() == k_manual) {
                 // in order for output_ch() to work for k_manual we
                 // also have to override radio_in
+                ch->radio_in = pwm;
+            }
+            if (ch->function.get() >= k_rcin1 && ch->function.get() <= k_rcin16) {
+                // save for k_rcin*
                 ch->radio_in = pwm;
             }
         }

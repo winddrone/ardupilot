@@ -7,7 +7,7 @@
 #include <AP_Common/AP_Common.h>
 #include <AP_Param/AP_Param.h>
 #include <stdlib.h>
-#include <math.h>
+#include <cmath>
 
 /// @class	AC_P
 /// @brief	Object managing one P controller
@@ -57,7 +57,7 @@ public:
     void operator() (const float p) { _kp = p; }
 
     // accessors
-    float       kP() const { return _kp.get(); }
+    AP_Float    &kP() { return _kp; }
     void        kP(const float v) { _kp.set(v); }
 
     static const struct AP_Param::GroupInfo        var_info[];

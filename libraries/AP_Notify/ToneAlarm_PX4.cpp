@@ -134,6 +134,11 @@ void ToneAlarm_PX4::update()
         return;
     }
 
+    // exit if buzzer is not enabled
+    if (pNotify->buzzer_enabled() == false) {
+        return;
+    }
+
     check_cont_tone();
 
     if (AP_Notify::flags.compass_cal_running != flags.compass_cal_running) {
@@ -290,6 +295,19 @@ void ToneAlarm_PX4::update()
         } else {
             stop_cont_tone();
         }
+    }
+
+    if (AP_Notify::events.tune_started) {
+        play_tone(AP_NOTIFY_PX4_TONE_LOUD_NEU_FEEDBACK);
+        AP_Notify::events.tune_started = 0;        
+    }
+    if (AP_Notify::events.tune_next) {
+        play_tone(AP_NOTIFY_PX4_TONE_LOUD_POS_FEEDBACK);
+        AP_Notify::events.tune_next = 0;        
+    }
+    if (AP_Notify::events.tune_save) {
+        play_tone(AP_NOTIFY_PX4_TONE_QUIET_READY_OR_FINISHED);
+        AP_Notify::events.tune_save = 0;
     }
 }
 

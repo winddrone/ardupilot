@@ -7,6 +7,16 @@
 #include <AC_AttitudeControl/AC_PosControl.h>
 #include <AC_WPNav/AC_WPNav.h>
 
+// uncomment this to force a different motor class
+// #define AP_MOTORS_FORCE_CLASS AP_MotorsTri
+
+
+#ifdef AP_MOTORS_FORCE_CLASS
+#define AP_MOTORS_CLASS AP_MOTORS_FORCE_CLASS
+#else
+#define AP_MOTORS_CLASS AP_MotorsMulticopter
+#endif
+
 /*
   QuadPlane specific functionality
  */
@@ -14,6 +24,8 @@ class QuadPlane
 {
 public:
     friend class Plane;
+    friend class AP_Tuning_Plane;
+    
     QuadPlane(AP_AHRS_NavEKF &_ahrs);
 
     // var_info for holding Parameter information
@@ -24,6 +36,11 @@ public:
     bool init_mode(void);
     bool setup(void);
     void setup_defaults(void);
+
+    void land_controller(void);
+    void setup_target_position(void);
+    void takeoff_controller(void);
+    void waypoint_controller(void);
     
     // update transition handling
     void update(void);
@@ -41,12 +58,12 @@ public:
         return available() && assisted_flight;
     }
     
-    bool handle_do_vtol_transition(const mavlink_command_long_t &packet);
+    bool handle_do_vtol_transition(enum MAV_VTOL_STATE state);
 
     bool do_vtol_takeoff(const AP_Mission::Mission_Command& cmd);
     bool do_vtol_land(const AP_Mission::Mission_Command& cmd);
     bool verify_vtol_takeoff(const AP_Mission::Mission_Command &cmd);
-    bool verify_vtol_land(const AP_Mission::Mission_Command &cmd);
+    bool verify_vtol_land(void);
     bool in_vtol_auto(void);
     bool in_vtol_mode(void);
 
@@ -58,6 +75,13 @@ public:
         return last_throttle * 0.1f;
     }
 
+    // return desired forward throttle percentage
+    int8_t forward_throttle_pct(void);        
+    float get_weathervane_yaw_rate_cds(void);
+
+    // see if we are flying from vtol point of view
+    bool is_flying_vtol(void);
+    
     struct PACKED log_QControl_Tuning {
         LOG_PACKET_HEADER;
         uint64_t time_us;
@@ -70,6 +94,8 @@ public:
         int16_t  climb_rate;
         float    dvx;
         float    dvy;
+        float    dax;
+        float    day;
     };
         
 private:
@@ -78,16 +104,16 @@ private:
 
     AP_InertialNav_NavEKF inertial_nav{ahrs};
 
-    AC_P                    p_pos_xy{1};
+    AC_P                    p_pos_xy{0.7};
     AC_P                    p_alt_hold{1};
     AC_P                    p_vel_z{5};
     AC_PID                  pid_accel_z{0.3, 1, 0, 800, 10, 0.02};
-    AC_PI_2D                pi_vel_xy{1.0, 0.5, 1000, 5, 0.02};
+    AC_PI_2D                pi_vel_xy{0.7, 0.35, 1000, 5, 0.02};
 
     AP_Int8 frame_class;
     AP_Int8 frame_type;
     
-    AP_MotorsMulticopter *motors;
+    AP_MOTORS_CLASS *motors;
     AC_AttitudeControl_Multi *attitude_control;
     AC_PosControl *pos_control;
     AC_WPNav *wp_nav;
@@ -131,6 +157,9 @@ private:
     void control_loiter(void);
     void check_land_complete(void);
 
+    void init_qrtl(void);
+    void control_qrtl(void);
+    
     float assist_climb_rate_cms(void);
 
     // calculate desired yaw rate for assistance
@@ -162,11 +191,31 @@ private:
     // landing speed in cm/s
     AP_Int16 land_speed_cms;
 
+    // QRTL start altitude, meters
+    AP_Int16 qrtl_alt;
+    
     // alt to switch to QLAND_FINAL
     AP_Float land_final_alt;
     
     AP_Int8 enable;
     AP_Int8 transition_pitch_max;
+
+    // control if a VTOL RTL will be used
+    AP_Int8 rtl_mode;
+    
+    struct {
+        AP_Float gain;
+        float integrator;
+        uint32_t lastt_ms;
+        int8_t last_pct;
+    } vel_forward;
+
+    struct {
+        AP_Float gain;
+        AP_Float min_roll;
+        uint32_t last_pilot_input_ms;
+        float last_output;
+    } weathervane;
     
     bool initialised;
     
@@ -199,22 +248,28 @@ private:
     // time we last set the loiter target
     uint32_t last_loiter_ms;
 
-    enum {
+    enum land_state {
         QLAND_POSITION1,
         QLAND_POSITION2,
         QLAND_DESCEND,
         QLAND_FINAL,
         QLAND_COMPLETE
-    } land_state;
-    int32_t land_yaw_cd;
-    float land_wp_proportion;
-    float land_speed_scale;
+    };
+    struct {
+        enum land_state state;
+        float speed_scale;
+        Vector2f target_velocity;
+        float max_speed;
+        Vector3f target;
+        bool slow_descent:1;
+    } land;
 
     enum frame_class {
         FRAME_CLASS_QUAD=0,
         FRAME_CLASS_HEXA=1,
         FRAME_CLASS_OCTA=2,
         FRAME_CLASS_OCTAQUAD=3,
+        FRAME_CLASS_Y6=4,
     };
 
     struct {

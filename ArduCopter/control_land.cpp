@@ -92,8 +92,8 @@ void Copter::land_gps_run()
         if ((g.throttle_behavior & THR_BEHAVE_HIGH_THROTTLE_CANCELS_LAND) != 0 && rc_throttle_control_in_filter.get() > LAND_CANCEL_TRIGGER_THR){
             Log_Write_Event(DATA_LAND_CANCELLED_BY_PILOT);
             // exit land if throttle is high
-            if (!set_mode(LOITER)) {
-                set_mode(ALT_HOLD);
+            if (!set_mode(LOITER, MODE_REASON_THROTTLE_LAND_ESCAPE)) {
+                set_mode(ALT_HOLD, MODE_REASON_THROTTLE_LAND_ESCAPE);
             }
         }
 
@@ -164,7 +164,7 @@ void Copter::land_nogps_run()
         if ((g.throttle_behavior & THR_BEHAVE_HIGH_THROTTLE_CANCELS_LAND) != 0 && rc_throttle_control_in_filter.get() > LAND_CANCEL_TRIGGER_THR){
             Log_Write_Event(DATA_LAND_CANCELLED_BY_PILOT);
             // exit land if throttle is high
-            set_mode(ALT_HOLD);
+            set_mode(ALT_HOLD, MODE_REASON_THROTTLE_LAND_ESCAPE);
         }
 
         if (g.land_repositioning) {
@@ -238,8 +238,21 @@ float Copter::get_land_descent_speed()
 #else
     bool sonar_ok = false;
 #endif
+
+    // get position controller's target altitude above terrain
+    Location_Class target_loc = pos_control.get_pos_target();
+    int32_t target_alt_cm;
+
+    // get altitude target above home by default
+    target_loc.get_alt_cm(Location_Class::ALT_FRAME_ABOVE_HOME, target_alt_cm);
+
+    // try to use terrain if enabled
+    if (terrain_use() && !target_loc.get_alt_cm(Location_Class::ALT_FRAME_ABOVE_TERRAIN, target_alt_cm)) {
+        Log_Write_Error(ERROR_SUBSYSTEM_TERRAIN, ERROR_CODE_MISSING_TERRAIN_DATA);
+    }
+
     // if we are above 10m and the sonar does not sense anything perform regular alt hold descent
-    if (pos_control.get_pos_target().z >= pv_alt_above_origin(LAND_START_ALT) && !(sonar_ok && sonar_alt_health >= SONAR_ALT_HEALTH_MAX)) {
+    if ((target_alt_cm >= LAND_START_ALT) && !(sonar_ok && sonar_alt_health >= SONAR_ALT_HEALTH_MAX)) {
         if (g.land_speed_high > 0) {
             // user has asked for a different landing speed than normal descent rate
             return -abs(g.land_speed_high);
@@ -260,9 +273,9 @@ void Copter::land_do_not_use_GPS()
 
 // set_mode_land_with_pause - sets mode to LAND and triggers 4 second delay before descent starts
 //  this is always called from a failsafe so we trigger notification to pilot
-void Copter::set_mode_land_with_pause()
+void Copter::set_mode_land_with_pause(mode_reason_t reason)
 {
-    set_mode(LAND);
+    set_mode(LAND, reason);
     land_pause = true;
 
     // alert pilot to mode change

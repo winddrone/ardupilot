@@ -273,7 +273,7 @@ public:
 
     // HIL methods
     void        setHIL(uint8_t instance, float roll, float pitch, float yaw);
-    void        setHIL(uint8_t instance, const Vector3f &mag);
+    void        setHIL(uint8_t instance, const Vector3f &mag, uint32_t last_update_usec);
     const Vector3f&   getHIL(uint8_t instance) const;
     void        _setup_earth_field();
 
@@ -294,6 +294,17 @@ public:
         Vector3f field[COMPASS_MAX_INSTANCES];
     } _hil;
 
+    enum LearnType {
+        LEARN_NONE=0,
+        LEARN_INTERNAL=1,
+        LEARN_EKF=2
+    };
+
+    // return the chosen learning type
+    enum LearnType get_learn_type(void) const {
+        return (enum LearnType)_learn.get();
+    }
+    
 private:
     /// Register a new compas driver, allocating an instance number
     ///

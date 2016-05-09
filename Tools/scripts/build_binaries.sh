@@ -112,7 +112,7 @@ addfwversion() {
     git log -1 > "$destdir/git-version.txt"
     [ -f APM_Config.h ] && {
         shopt -s nullglob
-	version=$(grep 'define.THISFIRMWARE' *.pde *.h 2> /dev/null | cut -d'"' -f2)
+	version=$(grep 'define.THISFIRMWARE' version.h 2> /dev/null | cut -d'"' -f2)
 	echo >> "$destdir/git-version.txt"
 	echo "APMVERSION: $version" >> "$destdir/git-version.txt"
 	python $BASEDIR/Tools/PrintVersion.py >"$destdir/firmware-version.txt"
@@ -155,7 +155,7 @@ build_arduplane() {
     tag="$1"
     echo "Building ArduPlane $tag binaries from $(pwd)"
     pushd ArduPlane
-    for b in apm1 apm2 navio pxf; do
+    for b in apm1 apm2 navio navio2 pxf; do
         checkout ArduPlane $tag $b "" || {
             echo "Failed checkout of ArduPlane $b $tag"
             error_count=$((error_count+1))
@@ -212,7 +212,7 @@ build_arducopter() {
     echo "Building ArduCopter $tag binaries from $(pwd)"
     pushd ArduCopter
     frames="quad tri hexa y6 octa octa-quad heli"
-    for b in navio pxf; do
+    for b in navio navio2 pxf; do
         for f in $frames; do
             checkout ArduCopter $tag $b $f || {
                 echo "Failed checkout of ArduCopter $b $tag $f"
@@ -263,7 +263,7 @@ build_rover() {
     tag="$1"
     echo "Building APMrover2 $tag binaries from $(pwd)"
     pushd APMrover2
-    for b in apm1 apm2 navio pxf; do
+    for b in apm1 apm2 navio navio2 pxf; do
 	echo "Building APMrover2 $b binaries"
         checkout APMrover2 $tag $b "" || continue
 	ddir=$binaries/Rover/$hdate/$b
@@ -369,5 +369,16 @@ for build in stable beta latest; do
 done
 
 rm -rf $TMPDIR
+
+if ./Tools/scripts/generate-manifest.py $binaries http://firmware.ardupilot.org >$binaries/manifest.json.new; then
+    echo "Manifest generation succeeded"
+    # provide a pre-compressed manifest.  For reference, a 7M manifest
+    # "gzip -9"s to 300k in 1 second, "xz -e"s to 80k in 26 seconds
+    gzip -9 <$binaries/manifest.json.new >$binaries/manifest.json.gz.new
+    mv $binaries/manifest.json.new $binaries/manifest.json
+    mv $binaries/manifest.json.gz.new $binaries/manifest.json.gz
+else
+    echo "Manifest generation failed"
+fi
 
 exit $error_count
