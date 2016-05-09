@@ -19,6 +19,10 @@ public:
 	// the target waypoint
 	virtual int32_t nav_roll_cd(void) const = 0;
 
+	// return the desired roll angle in centi-degrees to move towards
+	// the target waypoint for loiter3d mode
+	virtual int32_t loiter3d_nav_roll_cd(void) const = 0;
+
 	// return the desired lateral acceleration in m/s/s to move towards
 	// the target waypoint
 	virtual float lateral_acceleration(void) const = 0;
@@ -77,7 +81,7 @@ public:
 
 	virtual void update_eight_plane(const struct Location &center_WP, float radius, Vector2f axis, float axis_proj, float v_axis, const struct Location &first_turn, const struct Location &second_turn, const struct Location &ta_loc, const struct Location &tb_loc, int8_t &branch, int8_t &branch_turn1, int8_t loiter_direction) = 0;
 
-	virtual void update_loiter_3d(const struct Location &center_WP, float radius, int8_t loiter_direction, Matrix3f M_pe, int32_t &height) = 0;
+	virtual void update_loiter_3d(const struct Location &center_WP, float radius, float slope, int8_t loiter_direction, Matrix3f M_pe, int32_t &height) = 0;
 
 	// update the internal state of the navigation controller, given a
 	// fixed heading. This is the step function for navigation control

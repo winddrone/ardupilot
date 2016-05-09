@@ -947,12 +947,12 @@ void Plane::do_loiter_3d()
 {
     float LOCATION_SCALING_FACTOR_INV = 89.83204953368922;
 
-    intersection.psi_plane = radians(90);
-    intersection.theta_plane = radians(10);
+    intersection.psi_plane = radians(0);
+    intersection.theta_plane = radians(9);
 
-    intersection.distance_cm = 8500;
+    intersection.distance_cm = 85000;
 
-    intersection.sphere_radius_cm = 10000;
+    intersection.sphere_radius_cm = 100000;
 
     float cos_psi = cosf(intersection.psi_plane);
     float cos_theta = cosf(intersection.theta_plane);
@@ -984,7 +984,7 @@ void Plane::do_loiter_3d()
     loiter.direction = 1;
 
 
-    hal.console->println("Welcome to Loiter 3D");
+    /*hal.console->println("Welcome to Loiter 3D");
 
     hal.console->println("home position");
 
@@ -996,7 +996,7 @@ void Plane::do_loiter_3d()
 
     hal.console->println("Alt");
     hal.console->println(intersection.circle_center.alt - home.alt);
-
+    */
 }
 
 void Plane::do_change_speed(const AP_Mission::Mission_Command& cmd)

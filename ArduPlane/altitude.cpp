@@ -239,8 +239,8 @@ int32_t Plane::relative_target_altitude_cm(void)
     int32_t relative_alt = target_altitude.amsl_cm - home.alt;
     relative_alt += int32_t(g.alt_offset)*100;
     relative_alt += rangefinder_correction() * 100;
-    hal.console->println("Height on circle");
-    hal.console->println(relative_alt);
+    //hal.console->println("Height on circle");
+    //hal.console->println(relative_alt);
     return relative_alt;
 }
 

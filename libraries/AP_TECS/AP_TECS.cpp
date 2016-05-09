@@ -479,11 +479,11 @@ void AP_TECS::_update_height_demand(void)
     }
     _hgt_dem_prev = _hgt_dem;
 
-    /*// Apply first order lag to height demand
-    _hgt_dem_adj = 0.05f * _hgt_dem + 0.95f * _hgt_dem_adj_last; */
+    // Apply first order lag to height demand
+    _hgt_dem_adj = 0.05f * _hgt_dem + 0.95f * _hgt_dem_adj_last;
 
     // my code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    _hgt_dem_adj = _hgt_dem;
+    //_hgt_dem_adj = 0.95f * _hgt_dem + 0.05f * _hgt_dem_adj_last;
 
     // in final landing stage force height rate demand to the
     // configured sink rate and adjust the demanded height to
