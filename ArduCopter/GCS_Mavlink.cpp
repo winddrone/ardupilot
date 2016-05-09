@@ -1,6 +1,7 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #include "Copter.h"
+#include "version.h"
 
 // default sensors are present and healthy: gyro, accelerometer, barometer, rate_control, attitude_stabilization, yaw_position, altitude control, x/y position control, motor_control
 #define MAVLINK_SENSOR_PRESENT_DEFAULT (MAV_SYS_STATUS_SENSOR_3D_GYRO | MAV_SYS_STATUS_SENSOR_3D_ACCEL | MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE | MAV_SYS_STATUS_SENSOR_ANGULAR_RATE_CONTROL | MAV_SYS_STATUS_SENSOR_ATTITUDE_STABILIZATION | MAV_SYS_STATUS_SENSOR_YAW_POSITION | MAV_SYS_STATUS_SENSOR_Z_ALTITUDE_CONTROL | MAV_SYS_STATUS_SENSOR_XY_POSITION_CONTROL | MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS | MAV_SYS_STATUS_AHRS)
@@ -33,7 +34,7 @@ NOINLINE void Copter::send_heartbeat(mavlink_channel_t chan)
     uint32_t custom_mode = control_mode;
 
     // set system as critical if any failsafe have triggered
-    if (failsafe.radio || failsafe.battery || failsafe.gcs || failsafe.ekf)  {
+    if (failsafe.radio || failsafe.battery || failsafe.gcs || failsafe.ekf || failsafe.terrain)  {
         system_status = MAV_STATE_CRITICAL;
     }
 
@@ -720,6 +721,7 @@ bool GCS_MAVLINK::try_send_message(enum ap_message id)
 
     case MSG_FENCE_STATUS:
     case MSG_WIND:
+    case MSG_POSITION_TARGET_GLOBAL_INT:
         // unused
         break;
 
@@ -838,38 +840,13 @@ const AP_Param::GroupInfo GCS_MAVLINK::var_info[] = {
     AP_GROUPEND
 };
 
-
-// see if we should send a stream now. Called at 50Hz
-bool GCS_MAVLINK::stream_trigger(enum streams stream_num)
+float GCS_MAVLINK::adjust_rate_for_stream_trigger(enum streams stream_num)
 {
-    if (stream_num >= NUM_STREAMS) {
-        return false;
-    }
-    float rate = (uint8_t)streamRates[stream_num].get();
-
-    // send at a much lower rate while handling waypoints and
-    // parameter sends
     if ((stream_num != STREAM_PARAMS) &&
         (waypoint_receiving || _queued_parameter != NULL)) {
-        rate *= 0.25f;
+        return 0.25f;
     }
-
-    if (rate <= 0) {
-        return false;
-    }
-
-    if (stream_ticks[stream_num] == 0) {
-        // we're triggering now, setup the next trigger point
-        if (rate > 50) {
-            rate = 50;
-        }
-        stream_ticks[stream_num] = (50 / rate) - 1 + stream_slowdown;
-        return true;
-    }
-
-    // count down at 50Hz
-    stream_ticks[stream_num]--;
-    return false;
+    return 1.0f;
 }
 
 void
@@ -978,9 +955,9 @@ GCS_MAVLINK::data_stream_send(void)
 }
 
 
-void GCS_MAVLINK::handle_guided_request(AP_Mission::Mission_Command &cmd)
+bool GCS_MAVLINK::handle_guided_request(AP_Mission::Mission_Command &cmd)
 {
-    copter.do_guided(cmd);
+    return copter.do_guided(cmd);
 }
 
 void GCS_MAVLINK::handle_change_alt_request(AP_Mission::Mission_Command &cmd)
@@ -1070,9 +1047,18 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         }
         break;
     }
+    
+    case MAVLINK_MSG_ID_MISSION_ITEM_INT:
+    {
+        if (handle_mission_item(msg, copter.mission)) {
+            copter.DataFlash.Log_Write_EntireMission(copter.mission);
+        }
+        break;
+    }
 
     // read an individual command from EEPROM and send it to the GCS
-    case MAVLINK_MSG_ID_MISSION_REQUEST:     // MAV ID: 40
+    case MAVLINK_MSG_ID_MISSION_REQUEST_INT:
+    case MAVLINK_MSG_ID_MISSION_REQUEST:     // MAV ID: 40, 51
     {
         handle_mission_request(copter.mission, msg);
         break;
@@ -1346,6 +1332,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         case MAV_CMD_DO_MOUNT_CONTROL:
 #if MOUNT == ENABLED
             copter.camera_mount.control(packet.param1, packet.param2, packet.param3, (MAV_MOUNT_MODE) packet.param7);
+            result = MAV_RESULT_ACCEPTED;
 #endif
             break;
 
@@ -1780,6 +1767,13 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         break;
     }
 
+    case MAVLINK_MSG_ID_DISTANCE_SENSOR:
+    {
+        result = MAV_RESULT_ACCEPTED;
+        copter.sonar.handle_msg(msg);
+        break;
+    }
+
 #if HIL_MODE != HIL_MODE_DISABLED
     case MAVLINK_MSG_ID_HIL_STATE:          // MAV ID: 90
     {
@@ -1796,7 +1790,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
         gps.setHIL(0, AP_GPS::GPS_OK_FIX_3D,
                    packet.time_usec/1000,
-                   loc, vel, 10, 0, true);
+                   loc, vel, 10, 0);
 
         // rad/sec
         Vector3f gyros;

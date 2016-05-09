@@ -82,6 +82,14 @@ public:
         k_rcin6                 = 56,
         k_rcin7                 = 57,
         k_rcin8                 = 58,
+        k_rcin9                 = 59,
+        k_rcin10                = 60,
+        k_rcin11                = 61,
+        k_rcin12                = 62,
+        k_rcin13                = 63,
+        k_rcin14                = 64,
+        k_rcin15                = 65,
+        k_rcin16                = 66,
         k_nr_aux_servo_functions         ///< This must be the last enum value (only add new values _before_ this one)
     } Aux_servo_function_t;
 
@@ -117,6 +125,9 @@ public:
 	// set servo_out
 	static void set_servo_out(Aux_servo_function_t function, int16_t value);
 
+    // setup failsafe for an auxillary channel function, by pwm
+    static void set_servo_failsafe_pwm(RC_Channel_aux::Aux_servo_function_t function, uint16_t pwm);
+    
 	// setup failsafe for an auxillary channel function
 	static void set_servo_failsafe(Aux_servo_function_t function, RC_Channel::LimitValue limit);
 

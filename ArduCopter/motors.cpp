@@ -221,10 +221,14 @@ void Copter::init_disarm_motors()
     gcs_send_text(MAV_SEVERITY_INFO, "Disarming motors");
 #endif
 
-    // save compass offsets learned by the EKF
-    Vector3f magOffsets;
-    if (ahrs.use_compass() && ahrs.getMagOffsets(magOffsets)) {
-        compass.set_and_save_offsets(compass.get_primary(), magOffsets);
+    // save compass offsets learned by the EKF if enabled
+    if (ahrs.use_compass() && compass.get_learn_type() == Compass::LEARN_EKF) {
+        for(uint8_t i=0; i<COMPASS_MAX_INSTANCES; i++) {
+            Vector3f magOffsets;
+            if (ahrs.getMagOffsets(i, magOffsets)) {
+                compass.set_and_save_offsets(i, magOffsets);
+            }
+        }
     }
 
 #if AUTOTUNE_ENABLED == ENABLED
@@ -246,7 +250,7 @@ void Copter::init_disarm_motors()
     mission.reset();
 
     // suspend logging
-    if (!(g.log_bitmask & MASK_LOG_WHEN_DISARMED)) {
+    if (!DataFlash.log_while_disarmed()) {
         DataFlash.EnableWrites(false);
     }
 
