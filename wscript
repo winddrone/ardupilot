@@ -26,7 +26,8 @@ from waflib import Build, ConfigSet, Context, Utils
 def init(ctx):
     env = ConfigSet.ConfigSet()
     try:
-        env.load('build/c4che/_cache.py')
+        p = os.path.join(Context.out_dir, Build.CACHE_DIR, Build.CACHE_SUFFIX)
+        env.load(p)
     except:
         return
 
@@ -86,6 +87,9 @@ def configure(cfg):
 
     cfg.env.BOARD = cfg.options.board
     cfg.env.DEBUG = cfg.options.debug
+
+    # Allow to differentiate our build from the make build
+    cfg.define('WAF_BUILD', 1)
 
     cfg.msg('Setting board to', cfg.options.board)
     boards.get_board(cfg.env.BOARD).configure(cfg)
@@ -162,7 +166,7 @@ def _build_dynamic_sources(bld):
     bld(
         features='mavgen',
         source='modules/mavlink/message_definitions/v1.0/ardupilotmega.xml',
-        output_dir='libraries/GCS_MAVLink/include/mavlink/v1.0/',
+        output_dir='libraries/GCS_MAVLink/include/mavlink/v2.0/',
         name='mavlink',
         # this below is not ideal, mavgen tool should set this, but that's not
         # currently possible
@@ -243,10 +247,9 @@ def _write_version_header(tsk):
 
 
 def build(bld):
-    config_header = Utils.h_file(bld.bldnode.make_node('ap_config.h').abspath())
-
-    bld.env.CCDEPS = config_header
-    bld.env.CXXDEPS = config_header
+    config_hash = Utils.h_file(bld.bldnode.make_node('ap_config.h').abspath())
+    bld.env.CCDEPS = config_hash
+    bld.env.CXXDEPS = config_hash
 
     bld.post_mode = Build.POST_LAZY
 

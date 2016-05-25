@@ -307,6 +307,9 @@ void UARTDriver::_uart_start_connection(const char *path, uint32_t baudrate)
     if (!_connected) {
         ::printf("Opening %s\n", path);
         _fd = ::open(path, O_RDWR | O_CLOEXEC);
+        // use much smaller buffer sizes on real UARTs
+        _writebuffer.set_size(1024);
+        _readbuffer.set_size(512);
     }
 
     if (_fd == -1) {
@@ -324,6 +327,9 @@ void UARTDriver::_uart_start_connection(const char *path, uint32_t baudrate)
     t.c_oflag &= ~(OPOST | ONLCR);
     t.c_lflag &= ~(ISIG | ICANON | IEXTEN | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE);
     t.c_cc[VMIN] = 0;
+    if (_sitlState->use_rtscts()) {
+        t.c_cflag |= CRTSCTS;
+    }
     tcsetattr(_fd, TCSANOW, &t);
 
     // set baudrate

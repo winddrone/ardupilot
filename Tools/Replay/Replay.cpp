@@ -102,6 +102,8 @@ private:
 
 ReplayVehicle replayvehicle;
 
+struct globals globals;
+
 #define GSCALAR(v, name, def) { replayvehicle.g.v.vtype, name, Parameters::k_param_ ## v, &replayvehicle.g.v, {def_value : def} }
 #define GOBJECT(v, name, class) { AP_PARAM_GROUP, name, Parameters::k_param_ ## v, &replayvehicle.v, {group_info : class::var_info} }
 #define GOBJECTN(v, pname, name, class) { AP_PARAM_GROUP, name, Parameters::k_param_ ## pname, &replayvehicle.v, {group_info : class::var_info} }
@@ -322,6 +324,7 @@ void Replay::usage(void)
     ::printf("\t--nottypes         list of msg types not to output, comma separated\n");
     ::printf("\t--downsample       downsampling rate for output\n");
     ::printf("\t--logmatch         match logging rate to source\n");
+    ::printf("\t--no-params        don't use parameters from the log\n");
 }
 
 
@@ -333,7 +336,8 @@ enum {
     OPT_TOLERANCE_VEL,
     OPT_NOTTYPES,
     OPT_DOWNSAMPLE,
-    OPT_LOGMATCH
+    OPT_LOGMATCH,
+    OPT_NOPARAMS,
 };
 
 void Replay::flush_dataflash(void) {
@@ -386,6 +390,7 @@ void Replay::_parse_command_line(uint8_t argc, char * const argv[])
         {"nottypes",        true,   0, OPT_NOTTYPES},
         {"downsample",      true,   0, OPT_DOWNSAMPLE},
         {"logmatch",        false,  0, OPT_LOGMATCH},
+        {"no-params",       false,  0, OPT_NOPARAMS},
         {0, false, 0, 0}
     };
 
@@ -459,6 +464,10 @@ void Replay::_parse_command_line(uint8_t argc, char * const argv[])
         case OPT_LOGMATCH:
             logmatch = true;
             break;
+
+        case OPT_NOPARAMS:
+            globals.no_params = true;
+            break;
             
         case 'h':
         default:
@@ -481,22 +490,35 @@ public:
     bool handle_log_format_msg(const struct log_Format &f);
     bool handle_msg(const struct log_Format &f, uint8_t *msg);
 
-    uint64_t last_clock_timestamp;
+    uint64_t last_clock_timestamp = 0;
+    float last_parm_value = 0;
+    char last_parm_name[17] {};
 private:
-    MsgHandler *handler;
+    MsgHandler *handler = nullptr;
+    MsgHandler *parm_handler = nullptr;
 };
 
 bool IMUCounter::handle_log_format_msg(const struct log_Format &f) {
     if (!strncmp(f.name,"IMU",4) ||
         !strncmp(f.name,"IMT",4)) {
-        // an IMU or IMT message message
+        // an IMU or IMT message message format
         handler = new MsgHandler(f);
+    }
+    if (strncmp(f.name,"PARM",4) == 0) {
+        // PARM message message format
+        parm_handler = new MsgHandler(f);
     }
 
     return true;
 };
 
 bool IMUCounter::handle_msg(const struct log_Format &f, uint8_t *msg) {
+    if (strncmp(f.name,"PARM",4) == 0) {
+        // gather parameter values to check for SCHED_LOOP_RATE
+        parm_handler->field_value(msg, "Name", last_parm_name, sizeof(last_parm_name));
+        parm_handler->field_value(msg, "Value", last_parm_value);
+        return true;
+    }
     if (strncmp(f.name,"IMU",4) &&
         strncmp(f.name,"IMT",4)) {
         // not an IMU message
@@ -526,6 +548,7 @@ bool Replay::find_log_info(struct log_information &info)
     int samplecount = 0;
     uint64_t prev = 0;
     uint64_t smallest_delta = 0;
+    uint64_t total_delta = 0;
     prev = 0;
     const uint16_t samples_required = 1000;
     while (samplecount < samples_required) {
@@ -534,6 +557,12 @@ bool Replay::find_log_info(struct log_information &info)
             break;
         }
 
+        if (streq(type, "PARM") && streq(reader.last_parm_name, "SCHED_LOOP_RATE")) {
+            // get rate directly from parameters
+            info.update_rate = reader.last_parm_value;
+            return true;
+        }
+        
         if (strlen(clock_source) == 0) {
             // If you want to add a clock source, also add it to
             // handle_msg and handle_log_format_msg, above.  Note that
@@ -557,17 +586,22 @@ bool Replay::find_log_info(struct log_information &info)
             samplecount = 0;
             prev = 0;
             smallest_delta = 0;
+            total_delta = 0;
         }
         if (streq(type, clock_source)) {
             if (prev == 0) {
                 prev = reader.last_clock_timestamp;
             } else {
                 uint64_t delta = reader.last_clock_timestamp - prev;
-                if (smallest_delta == 0 || delta < smallest_delta) {
-                    smallest_delta = delta;
+                if (delta < 40000 && delta > 1000) {
+                    if (smallest_delta == 0 || delta < smallest_delta) {
+                        smallest_delta = delta;
+                    }
+                    samplecount++;
+                    total_delta += delta;
                 }
-                samplecount++;
             }
+            prev = reader.last_clock_timestamp;
         }
 
         if (streq(type, "IMU2")) {
@@ -585,7 +619,10 @@ bool Replay::find_log_info(struct log_information &info)
         return false;
     }
 
-    float rate = 1.0e6f/smallest_delta;
+    float average_delta = total_delta / samplecount;
+    float rate = 1.0e6f/average_delta;
+    printf("average_delta=%.2f smallest_delta=%lu samplecount=%lu\n",
+           average_delta, (unsigned long)smallest_delta, (unsigned long)samplecount);
     if (rate < 100) {
         info.update_rate = 50;
     } else {
@@ -863,7 +900,7 @@ void Replay::log_check_solution(void)
 
     float roll_error  = degrees(fabsf(euler.x - check_state.euler.x));
     float pitch_error = degrees(fabsf(euler.y - check_state.euler.y));
-    float yaw_error = wrap_180_cd_float(100*degrees(fabsf(euler.z - check_state.euler.z)))*0.01f;
+    float yaw_error = wrap_180_cd(100*degrees(fabsf(euler.z - check_state.euler.z)))*0.01f;
     float vel_error = (velocity - check_state.velocity).length();
     float pos_error = get_distance(check_state.pos, loc);
 
@@ -917,7 +954,7 @@ void Replay::loop()
             Vector3f magVar;
             float tasVar;
             Vector2f offset;
-            uint8_t faultStatus;
+            uint16_t faultStatus;
 
             const Matrix3f &dcm_matrix = _vehicle.ahrs.AP_AHRS_DCM::get_rotation_body_to_ned();
             dcm_matrix.to_euler(&DCM_attitude.x, &DCM_attitude.y, &DCM_attitude.z);
