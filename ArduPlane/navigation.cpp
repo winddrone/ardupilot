@@ -206,7 +206,91 @@ void Plane::update_eight_plane()
 void Plane::update_loiter_3d()
 {
 
-    nav_controller->update_loiter_3d(intersection.circle_center, intersection.circle_radius, intersection.theta_plane, loiter.direction, intersection.rot_matrix_pe, intersection.height);
+    nav_controller->update_loiter_3d(intersection.circle_center, intersection.circle_radius, intersection.theta_plane, intersection.distance_cm, loiter.direction, intersection.rot_matrix_pe, intersection.height);
+
+}
+
+void Plane::update_eight_sphere()
+{
+
+    switch(eight_sphere.segment)
+    {
+    case 0: { //left turning circle
+        hal.console->println("case 0");
+
+        nav_controller->update_loiter_3d(eight_sphere.circle_center_left, intersection.circle_radius, eight_sphere.slope, intersection.distance_cm, 1, eight_sphere.rot_matrix_left, intersection.height);
+
+        int32_t nav_bearing = nav_controller->nav_bearing_cd();
+
+        hal.console->println("nav_bearing");
+        hal.console->println(nav_bearing);
+        /*hal.console->println("radius");
+        hal.console->println(intersection.circle_radius);
+        hal.console->println("slope");
+        hal.console->println(eight_sphere.slope);
+        hal.console->println("distance");
+        hal.console->println(intersection.distance_cm);
+        hal.console->println("lat");
+        hal.console->println(eight_sphere.circle_center_left.lat);
+        hal.console->println("lng");
+        hal.console->println(eight_sphere.circle_center_left.lng);*/
+
+        // use 26850 instead of 27000 to overcome delay
+        if(nav_bearing >= 26850 + RadiansToCentiDegrees(eight_sphere.sector_angle)) {
+            eight_sphere.segment++;
+            eight_sphere.segment = eight_sphere.segment % 4;
+        }
+        break;
+    }
+
+    case 1: {
+        hal.console->println("case 1");
+        nav_controller->update_loiter_3d(home, intersection.sphere_radius_cm/100.0f, M_PI/2, 0, 1, eight_sphere.rot_matrix_cross1, intersection.height);
+
+        int32_t nav_bearing = wrap_180_cd(nav_controller->nav_bearing_cd());
+        hal.console->println("nav_bearing");
+        hal.console->println(nav_bearing);
+
+        if(nav_bearing >= RadiansToCentiDegrees(eight_sphere.arc_length_angle)) {
+            eight_sphere.segment++;
+            eight_sphere.segment = eight_sphere.segment % 4;
+        }
+        break;
+    }
+
+    case 2: { // right turning circle
+        hal.console->println("case 2");
+
+        nav_controller->update_loiter_3d(eight_sphere.circle_center_right, intersection.circle_radius, eight_sphere.slope, intersection.distance_cm, -1, eight_sphere.rot_matrix_right, intersection.height);
+
+        int32_t nav_bearing = nav_controller->nav_bearing_cd();
+        hal.console->println("nav_bearing");
+        hal.console->println(nav_bearing);
+
+        // use 9150 instead of 9000 to overcome delay
+        if(nav_bearing <= 9150 - RadiansToCentiDegrees(eight_sphere.sector_angle)) {
+            eight_sphere.segment++;
+            eight_sphere.segment = eight_sphere.segment % 4;
+        }
+        break;
+    }
+
+    case 3: {
+        hal.console->println("case 3");
+        nav_controller->update_loiter_3d(home, intersection.sphere_radius_cm/100.0f, M_PI/2, 0, -1, eight_sphere.rot_matrix_cross2, intersection.height);
+
+        int32_t nav_bearing = wrap_180_cd(nav_controller->nav_bearing_cd());
+        hal.console->println("nav_bearing");
+        hal.console->println(nav_bearing);
+
+        if(nav_bearing <= -RadiansToCentiDegrees(eight_sphere.arc_length_angle)) {
+            eight_sphere.segment++;
+            eight_sphere.segment = eight_sphere.segment % 4;
+        }
+        break;
+    }
+
+    }
 
 }
 

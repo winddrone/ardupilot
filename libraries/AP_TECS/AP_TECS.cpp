@@ -409,7 +409,17 @@ void AP_TECS::_update_speed_demand(void)
     float velRateMax;
     float velRateMin;
     if ((_flags.badDescent) || (_flags.underspeed))
+    //my code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     {
+        velRateMax =  _STEdot_max / _integ5_state;
+        velRateMin =  _STEdot_min / _integ5_state;
+    }
+    else
+    {
+        velRateMax =  _STEdot_max / _integ5_state;
+        velRateMin =  _STEdot_min / _integ5_state;
+    }
+    /*{
         velRateMax = 0.5f * _STEdot_max / _integ5_state;
         velRateMin = 0.5f * _STEdot_min / _integ5_state;
     }
@@ -417,7 +427,7 @@ void AP_TECS::_update_speed_demand(void)
     {
         velRateMax = 0.5f * _STEdot_max / _integ5_state;
         velRateMin = 0.5f * _STEdot_min / _integ5_state;
-    }
+    }*/
 
     // Apply rate limit
     if ((_TAS_dem - _TAS_dem_adj) > (velRateMax * 0.1f))
@@ -443,8 +453,8 @@ void AP_TECS::_update_speed_demand(void)
 void AP_TECS::_update_height_demand(void)
 {
     // Apply 2 point moving average to demanded height
-    _hgt_dem = 0.5f * (_hgt_dem + _hgt_dem_in_old);
-    _hgt_dem_in_old = _hgt_dem;
+    /*_hgt_dem = 0.5f * (_hgt_dem + _hgt_dem_in_old);
+    _hgt_dem_in_old = _hgt_dem;*/
 
     float max_sink_rate = _maxSinkRate;
     if (_maxSinkRate_approach > 0 && _flags.is_doing_auto_land) {
@@ -466,12 +476,14 @@ void AP_TECS::_update_height_demand(void)
         _hgt_dem = _hgt_dem_prev - max_sink_rate * 0.1f;
     }
     _hgt_dem_prev = _hgt_dem;
+    //hal.console->print(" ,height_dem: ");
+    //hal.console->print(_hgt_dem);
 
     // Apply first order lag to height demand
-    _hgt_dem_adj = 0.05f * _hgt_dem + 0.95f * _hgt_dem_adj_last;
+    //_hgt_dem_adj = 0.05f * _hgt_dem + 0.95f * _hgt_dem_adj_last;
 
     // my code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    //_hgt_dem_adj = 0.95f * _hgt_dem + 0.05f * _hgt_dem_adj_last;
+    _hgt_dem_adj =_hgt_dem;
 
     // in final landing stage force height rate demand to the
     // configured sink rate and adjust the demanded height to
@@ -511,6 +523,9 @@ void AP_TECS::_update_height_demand(void)
     }
     _hgt_dem_adj_last = _hgt_dem_adj;
     _hgt_dem_adj = new_hgt_dem;
+
+    //hal.console->print(" ,height_dem_adj: ");
+    //hal.console->println(_hgt_dem_adj);
 }
 
 void AP_TECS::_detect_underspeed(void)

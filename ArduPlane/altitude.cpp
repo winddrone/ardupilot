@@ -51,7 +51,7 @@ void Plane::adjust_altitude_target()
     } else {
         set_target_altitude_location(next_WP_loc);
     }
-    if (control_mode == LOITER_3D) {
+    if (control_mode == LOITER_3D || control_mode == EIGHT_SPHERE) {
         set_target_altitude(intersection.height);
     }
 
@@ -223,8 +223,8 @@ void Plane::set_target_altitude(int32_t height){
     target_altitude.amsl_cm = home.alt + height;
     //hal.console->print("home alt: ");
     //hal.console->println(home.alt);
-    //hal.console->print("height: ");
-    //hal.console->println(height);
+    //hal.console->print("set_height: ");
+    //hal.console->print(height);
 
 }
 

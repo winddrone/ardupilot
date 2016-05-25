@@ -1243,6 +1243,7 @@ bool Plane::allow_reverse_thrust(void)
         allow |= (g.use_reverse_thrust & USE_REVERSE_THRUST_LOITER);
         break;
     case LOITER_3D:
+    case EIGHT_SPHERE:
         // have to finish it
     case RTL:
         allow |= (g.use_reverse_thrust & USE_REVERSE_THRUST_RTL);

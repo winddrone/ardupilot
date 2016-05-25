@@ -153,7 +153,7 @@ Vector3f location_diff_3d(const struct Location &loc1, const struct Location &lo
 {
     return Vector3f((loc2.lat - loc1.lat) * LOCATION_SCALING_FACTOR,
                     (loc2.lng - loc1.lng) * LOCATION_SCALING_FACTOR * longitude_scale(loc1),
-                    (loc2.alt - loc1.alt) * 0.01f);
+                    (loc1.alt - loc2.alt) * 0.01f);         // loc1 - loc2 because z axis points downwards
 }
 
 /*

@@ -68,7 +68,8 @@ enum FlightMode {
     QLAND         = 20,
     QRTL          = 21,
     EIGHT_PLANE   = 30,
-    LOITER_3D     = 31
+    LOITER_3D     = 31,
+    EIGHT_SPHERE  = 32
 };
 
 // type of stick mixing enabled

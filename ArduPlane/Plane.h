@@ -105,6 +105,9 @@
 #include <SITL/SITL.h>
 #endif
 
+#include <fstream> // spaeter loeschen
+using namespace std; // spaeter loeschen
+
 /*
   a plane specific arming class
  */
@@ -628,10 +631,10 @@ private:
 
 
     struct Eight_plane {
-        // angle of eight with respect to NED system in centi-degrees
+        // angle of eight with respect to NED system
         float angle;
 
-        // angle of crossing path in centi-degrees
+        // angle of crossing path
         float crossangle;
 
         // distance of two centerpoints of turning circles in m
@@ -671,23 +674,52 @@ private:
     } eight;
 
     struct {
-        // rotates e_z and e_y
+        // rotation around e_z and e_y
         float psi_plane;
         float theta_plane;
 
-        float distance_cm;         // distance between plane and origin in cm
+        int32_t distance_cm;         // distance between plane and origin in cm
 
         Vector3f normal_vec;    // normal vector, perpendicular to plane spanned by rotated e_y and e_x
         struct Location circle_center;
 
         int32_t sphere_radius_cm;    // radius of sphere in cm
-        int32_t circle_radius;    // radius of cross section between sphere and plane in m
+        float circle_radius;    // radius of cross section between sphere and plane in m
 
         Matrix3f rot_matrix_pe;    // describes an earth frame vector in the new plane frame
 
         int32_t height;           // z position on circle
 
+        float eccent;              // eccentricity of circle projection (ellipse)
+
     } intersection;
+
+    struct {
+
+        float psi;              // rotation around e_z
+        float theta;            // rotation around e_y
+
+        float cross_angle;       // half angle of crossing path
+        float arc_length_angle;
+
+        float slope;            // angle of intersection circle
+
+        float secant;           // distance between two ending points
+
+        float sector_angle;     // 2*sector_angle + pi = sector of circle
+
+        Vector3f normal_vec;    // Unitvector to circle center
+        Matrix3f rot_matrix_right; // describes an earth frame vector in the plane frame of right turning circles
+        Matrix3f rot_matrix_left;
+        Matrix3f rot_matrix_cross1;
+        Matrix3f rot_matrix_cross2;
+
+        struct Location circle_center_left;
+        struct Location circle_center_right;
+
+        int8_t segment = 0;         // defines on which segment of the eight the plane is
+
+    } eight_sphere;
 
     // Conditional command
     // A value used in condition commands (eg delay, change alt, etc.)
@@ -912,6 +944,7 @@ private:
     void do_loiter_at_location();
     void do_eight_plane();
     void do_loiter_3d();
+    void do_eight_sphere();
     void do_take_picture();
     bool verify_loiter_heading(bool init);
     void log_picture();
@@ -958,6 +991,7 @@ private:
     void update_loiter(uint16_t radius);
     void update_eight_plane();
     void update_loiter_3d();
+    void update_eight_sphere();
     void update_cruise();
     void update_fbwb_speed_height(void);
     void setup_turn_angle(void);

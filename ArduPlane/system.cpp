@@ -460,6 +460,11 @@ void Plane::set_mode(enum FlightMode mode)
         // mission.start_or_resume();
         break;
 
+    case EIGHT_SPHERE:
+        auto_throttle_mode = true;
+        do_eight_sphere();
+        break;
+
     case GUIDED:
         auto_throttle_mode = true;
         guided_throttle_passthru = false;
@@ -523,6 +528,7 @@ bool Plane::mavlink_set_mode(uint8_t mode)
     case QLAND:
     case EIGHT_PLANE:
     case LOITER_3D:
+    case EIGHT_SPHERE:
     case QRTL:
         set_mode((enum FlightMode)mode);
         return true;
@@ -718,6 +724,9 @@ void Plane::print_flight_mode(AP_HAL::BetterStream *port, uint8_t mode)
         break;
     case LOITER_3D:
         port->print("Loiter 3D");
+        break;
+    case EIGHT_SPHERE:
+        port->print("Eight sphere");
         break;
     case GUIDED:
         port->print("Guided");

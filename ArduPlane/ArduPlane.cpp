@@ -566,6 +566,7 @@ void Plane::update_flight_mode(void)
         break;
 
     case LOITER_3D:
+    case EIGHT_SPHERE:
         loiter3d_calc_nav_roll();
         loiter3d_calc_nav_pitch();
         calc_throttle();
@@ -802,6 +803,10 @@ void Plane::update_navigation()
         update_loiter_3d();
         break;
 
+    case EIGHT_SPHERE:
+        update_eight_sphere();
+        break;
+
     case CRUISE:
         update_cruise();
         break;
@@ -916,7 +921,16 @@ void Plane::update_alt()
         default:
             break;
         }
-
+        //my code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        /*hal.console->println(relative_target_altitude_cm());
+        Location home_loc = ahrs.get_home();
+        Vector3f A_air = location_diff_3d(home_loc, current_loc);
+        fstream f;
+        uint32_t now = AP_HAL::micros();
+        f.open("testingTECSController.txt", ios::out | ios::app);
+        f << now << " " << A_air.x << " " << A_air.y << " " << A_air.z << " " << relative_target_altitude_cm()/100.0f << endl;
+        f.close();*/
+        //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         SpdHgt_Controller->update_pitch_throttle(relative_target_altitude_cm(),
                                                  target_airspeed_cm,
                                                  flight_stage,

@@ -919,9 +919,9 @@ void Plane::do_loiter_3d()
     intersection.psi_plane = radians(0);
     intersection.theta_plane = radians(9);
 
-    intersection.distance_cm = 85000;
+    intersection.distance_cm = 8000;
 
-    intersection.sphere_radius_cm = 100000;
+    intersection.sphere_radius_cm = 10000;
 
     float cos_psi = cosf(intersection.psi_plane);
     float cos_theta = cosf(intersection.theta_plane);
@@ -933,6 +933,8 @@ void Plane::do_loiter_3d()
     intersection.normal_vec.z = - cos_theta;
 
     intersection.circle_radius = sqrtf(intersection.sphere_radius_cm/100.0f * intersection.sphere_radius_cm/100.0f - intersection.distance_cm/100.0f * intersection.distance_cm/100.0f);
+
+    intersection.eccent = sin_theta;
 
     intersection.circle_center = home;
     intersection.circle_center.lat += intersection.distance_cm/100.0f * intersection.normal_vec.x * LOCATION_SCALING_FACTOR_INV;
@@ -966,6 +968,94 @@ void Plane::do_loiter_3d()
     hal.console->println("Alt");
     hal.console->println(intersection.circle_center.alt - home.alt);
     */
+}
+
+void Plane::do_eight_sphere()
+{
+    float LOCATION_SCALING_FACTOR_INV = 89.83204953368922;
+
+    eight_sphere.cross_angle = radians(20);
+    eight_sphere.arc_length_angle = radians(20);
+
+    eight_sphere.psi = radians(0);
+    eight_sphere.theta = radians(0);
+
+    float cos_cross = cosf(eight_sphere.cross_angle);
+    float cos_arc = cosf(eight_sphere.arc_length_angle);
+    float sin_cross = sinf(eight_sphere.cross_angle);
+    float sin_arc = sinf(eight_sphere.arc_length_angle);
+
+
+    eight_sphere.slope = atanf(sin_arc/(cos_arc*cos_cross));
+    float sin_slope = sinf(eight_sphere.slope);
+    float cos_slope = cosf(eight_sphere.slope);
+
+    intersection.sphere_radius_cm = 100000;
+    intersection.distance_cm = intersection.sphere_radius_cm *(sin_slope*cos_cross*sin_arc + cos_slope*cos_arc);
+
+    intersection.circle_radius = sqrtf(intersection.sphere_radius_cm/100.0f * intersection.sphere_radius_cm/100.0f - intersection.distance_cm/100.0f * intersection.distance_cm/100.0f);
+
+    eight_sphere.secant = 2*intersection.sphere_radius_cm/100*sin_cross*sin_arc;
+    eight_sphere.sector_angle = acosf(eight_sphere.secant/(2*intersection.circle_radius));
+
+    eight_sphere.normal_vec.x = 0;
+    eight_sphere.normal_vec.y = sin_slope;
+    eight_sphere.normal_vec.z = -cos_slope;
+
+    eight_sphere.circle_center_left = home;
+    eight_sphere.circle_center_left.lat -= intersection.distance_cm/100.0f * eight_sphere.normal_vec.x * LOCATION_SCALING_FACTOR_INV;
+    eight_sphere.circle_center_left.lng -= intersection.distance_cm/100.0f * eight_sphere.normal_vec.y * LOCATION_SCALING_FACTOR_INV / longitude_scale(home);
+    eight_sphere.circle_center_left.alt -= intersection.distance_cm * eight_sphere.normal_vec.z;
+
+    eight_sphere.circle_center_right = home;
+    eight_sphere.circle_center_right.lat += intersection.distance_cm/100.0f * eight_sphere.normal_vec.x * LOCATION_SCALING_FACTOR_INV;
+    eight_sphere.circle_center_right.lng += intersection.distance_cm/100.0f * eight_sphere.normal_vec.y * LOCATION_SCALING_FACTOR_INV / longitude_scale(home);
+    eight_sphere.circle_center_right.alt -= intersection.distance_cm * eight_sphere.normal_vec.z;
+
+
+    eight_sphere.rot_matrix_right.a.x = 0;
+    eight_sphere.rot_matrix_right.a.y = -cos_slope;
+    eight_sphere.rot_matrix_right.a.z = -sin_slope;
+    eight_sphere.rot_matrix_right.b.x = 1;
+    eight_sphere.rot_matrix_right.b.y = 0;
+    eight_sphere.rot_matrix_right.b.z = 0;
+    eight_sphere.rot_matrix_right.c.x = 0;
+    eight_sphere.rot_matrix_right.c.y = -sin_slope;
+    eight_sphere.rot_matrix_right.c.z = cos_slope;
+
+    eight_sphere.rot_matrix_left.a.x = 0;
+    eight_sphere.rot_matrix_left.a.y = cos_slope;
+    eight_sphere.rot_matrix_left.a.z = -sin_slope;
+    eight_sphere.rot_matrix_left.b.x = -1;
+    eight_sphere.rot_matrix_left.b.y = 0;
+    eight_sphere.rot_matrix_left.b.z = 0;
+    eight_sphere.rot_matrix_left.c.x = 0;
+    eight_sphere.rot_matrix_left.c.y = sin_slope;
+    eight_sphere.rot_matrix_left.c.z = cos_slope;
+
+    eight_sphere.rot_matrix_cross1.a.x = 0;
+    eight_sphere.rot_matrix_cross1.a.y = 0;
+    eight_sphere.rot_matrix_cross1.a.z = -1;
+    eight_sphere.rot_matrix_cross1.b.x = -sin_cross;
+    eight_sphere.rot_matrix_cross1.b.y = cos_cross;
+    eight_sphere.rot_matrix_cross1.b.z = 0;
+    eight_sphere.rot_matrix_cross1.c.x = cos_cross;
+    eight_sphere.rot_matrix_cross1.c.y = sin_cross;
+    eight_sphere.rot_matrix_cross1.c.z = 0;
+
+    eight_sphere.rot_matrix_cross2.a.x = 0;
+    eight_sphere.rot_matrix_cross2.a.y = 0;
+    eight_sphere.rot_matrix_cross2.a.z = -1;
+    eight_sphere.rot_matrix_cross2.b.x = sin_cross;
+    eight_sphere.rot_matrix_cross2.b.y = cos_cross;
+    eight_sphere.rot_matrix_cross2.b.z = 0;
+    eight_sphere.rot_matrix_cross2.c.x = cos_cross;
+    eight_sphere.rot_matrix_cross2.c.y = -sin_cross;
+    eight_sphere.rot_matrix_cross2.c.z = 0;
+
+
+    eight_sphere.segment = 0;
+
 }
 
 void Plane::do_change_speed(const AP_Mission::Mission_Command& cmd)

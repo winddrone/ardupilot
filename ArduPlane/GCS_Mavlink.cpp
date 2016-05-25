@@ -52,6 +52,7 @@ void Plane::send_heartbeat(mavlink_channel_t chan)
     case LOITER:
     case EIGHT_PLANE:
     case LOITER_3D: // not finished
+    case EIGHT_SPHERE: // not finished
     case GUIDED:
     case CIRCLE:
     case QRTL:
@@ -207,6 +208,7 @@ void Plane::send_extended_status1(mavlink_channel_t chan)
     case LOITER:
     case EIGHT_PLANE:
     case LOITER_3D: // not finished
+    case EIGHT_SPHERE: // not finished
     case GUIDED:
     case CIRCLE:
     case QRTL:
@@ -1279,6 +1281,11 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
         case MAV_CMD_NAV_LOITER_3D:
             plane.set_mode(LOITER_3D);
+            result = MAV_RESULT_ACCEPTED;
+            break;
+
+        case MAV_CMD_NAV_EIGHT_SPHERE:
+            plane.set_mode(EIGHT_SPHERE);
             result = MAV_RESULT_ACCEPTED;
             break;
 
