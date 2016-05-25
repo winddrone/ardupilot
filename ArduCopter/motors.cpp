@@ -16,12 +16,12 @@ void Copter::arm_motors_check()
     static int16_t arming_counter;
 
     // ensure throttle is down
-    if (channel_throttle->control_in > 0) {
+    if (channel_throttle->get_control_in() > 0) {
         arming_counter = 0;
         return;
     }
 
-    int16_t tmp = channel_yaw->control_in;
+    int16_t tmp = channel_yaw->get_control_in();
 
     // full right
     if (tmp > 4000) {
@@ -104,7 +104,7 @@ void Copter::auto_disarm_check()
             thr_low = ap.throttle_zero;
         } else {
             float deadband_top = g.rc_3.get_control_mid() + g.throttle_deadzone;
-            thr_low = g.rc_3.control_in <= deadband_top;
+            thr_low = g.rc_3.get_control_in() <= deadband_top;
         }
 
         if (!thr_low || !ap.land_complete) {
@@ -180,9 +180,6 @@ bool Copter::init_arm_motors(bool arming_from_gcs)
     // turn off sprayer's test if on
     sprayer.test_pump(false);
 #endif
-
-    // short delay to allow reading of rc inputs
-    delay(30);
 
     // enable output to motors
     enable_motor_output();
@@ -288,7 +285,7 @@ void Copter::lost_vehicle_check()
     }
 
     // ensure throttle is down, motors not armed, pitch and roll rc at max. Note: rc1=roll rc2=pitch
-    if (ap.throttle_zero && !motors.armed() && (channel_roll->control_in > 4000) && (channel_pitch->control_in > 4000)) {
+    if (ap.throttle_zero && !motors.armed() && (channel_roll->get_control_in() > 4000) && (channel_pitch->get_control_in() > 4000)) {
         if (soundalarm_counter >= LOST_VEHICLE_DELAY) {
             if (AP_Notify::flags.vehicle_lost == false) {
                 AP_Notify::flags.vehicle_lost = true;

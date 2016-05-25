@@ -159,7 +159,7 @@ void Rover::ahrs_update()
     // if using the EKF get a speed update now (from accelerometers)
     Vector3f velocity;
     if (ahrs.get_velocity_NED(velocity)) {
-        ground_speed = pythagorous2(velocity.x, velocity.y);
+        ground_speed = norm(velocity.x, velocity.y);
     }
 
     if (should_log(MASK_LOG_ATTITUDE_FAST))
@@ -377,7 +377,12 @@ void Rover::update_GPS_10Hz(void)
                 init_home();
 
                 // set system clock for log timestamps
-                hal.util->set_system_clock(gps.time_epoch_usec());
+                uint64_t gps_timestamp = gps.time_epoch_usec();
+                
+                hal.util->set_system_clock(gps_timestamp);
+                
+                // update signing timestamp
+                GCS_MAVLINK::update_signing_timestamp(gps_timestamp);
 
                 if (g.compass_enabled) {
                     // Set compass declination automatically
@@ -388,7 +393,7 @@ void Rover::update_GPS_10Hz(void)
         }
         Vector3f velocity;
         if (ahrs.get_velocity_NED(velocity)) {
-            ground_speed = pythagorous2(velocity.x, velocity.y);
+            ground_speed = norm(velocity.x, velocity.y);
         } else {
             ground_speed   = gps.ground_speed();
         }
@@ -420,11 +425,11 @@ void Rover::update_current_mode(void)
         set_reverse(false);
         if (rtl_complete || verify_RTL()) {
             // we have reached destination so stop where we are
-            if (channel_throttle->servo_out != g.throttle_min.get()) {
+            if (channel_throttle->get_servo_out() != g.throttle_min.get()) {
                 gcs_send_mission_item_reached_message(0);
             }
-            channel_throttle->servo_out = g.throttle_min.get();
-            channel_steer->servo_out = 0;
+            channel_throttle->set_servo_out(g.throttle_min.get());
+            channel_steer->set_servo_out(0);
             lateral_acceleration = 0;
         } else {
             calc_lateral_acceleration();
@@ -470,18 +475,18 @@ void Rover::update_current_mode(void)
           we set the exact value in set_servos(), but it helps for
           logging
          */
-        channel_throttle->servo_out = channel_throttle->control_in;
-        channel_steer->servo_out = channel_steer->pwm_to_angle();
+        channel_throttle->set_servo_out(channel_throttle->get_control_in());
+        channel_steer->set_servo_out(channel_steer->pwm_to_angle());
 
         // mark us as in_reverse when using a negative throttle to
         // stop AHRS getting off
-        set_reverse(channel_throttle->servo_out < 0);
+        set_reverse(channel_throttle->get_servo_out() < 0);
         break;
 
     case HOLD:
         // hold position - stop motors and center steering
-        channel_throttle->servo_out = 0;
-        channel_steer->servo_out = 0;
+        channel_throttle->set_servo_out(0);
+        channel_steer->set_servo_out(0);
         set_reverse(false);
         break;
 
@@ -509,7 +514,7 @@ void Rover::update_navigation()
         calc_lateral_acceleration();
         calc_nav_steer();
         if (verify_RTL()) {
-            channel_throttle->servo_out = g.throttle_min.get();
+            channel_throttle->set_servo_out(g.throttle_min.get());
             set_mode(HOLD);
         }
         break;
@@ -520,8 +525,8 @@ void Rover::update_navigation()
         calc_nav_steer();
         if (rtl_complete || verify_RTL()) {
             // we have reached destination so stop where we are
-            channel_throttle->servo_out = g.throttle_min.get();
-            channel_steer->servo_out = 0;
+            channel_throttle->set_servo_out(g.throttle_min.get());
+            channel_steer->set_servo_out(0);
             lateral_acceleration = 0;
         }
         break;
