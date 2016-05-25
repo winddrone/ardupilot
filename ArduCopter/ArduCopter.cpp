@@ -94,7 +94,8 @@ const AP_Scheduler::Task Copter::scheduler_tasks[] = {
     SCHED_TASK(arm_motors_check,      10,     50),
     SCHED_TASK(auto_disarm_check,     10,     50),
     SCHED_TASK(auto_trim,             10,     75),
-    SCHED_TASK(update_altitude,       10,    140),
+    SCHED_TASK(read_rangefinder,      20,    100),
+    SCHED_TASK(update_altitude,       10,    100),
     SCHED_TASK(run_nav_updates,       50,    100),
     SCHED_TASK(update_thr_average,   100,     90),
     SCHED_TASK(three_hz_loop,          3,     75),
@@ -475,7 +476,7 @@ void Copter::one_hz_loop()
         motors.set_frame_orientation(g.frame_orientation);
 
         // set all throttle channel settings
-        motors.set_throttle_range(g.throttle_min, channel_throttle->radio_min, channel_throttle->radio_max);
+        motors.set_throttle_range(g.throttle_min, channel_throttle->get_radio_min(), channel_throttle->get_radio_max());
         // set hover throttle
         motors.set_hover_throttle(g.throttle_mid);
 #endif
@@ -566,17 +567,17 @@ void Copter::update_simple_mode(void)
 
     if (ap.simple_mode == 1) {
         // rotate roll, pitch input by -initial simple heading (i.e. north facing)
-        rollx = channel_roll->control_in*simple_cos_yaw - channel_pitch->control_in*simple_sin_yaw;
-        pitchx = channel_roll->control_in*simple_sin_yaw + channel_pitch->control_in*simple_cos_yaw;
+        rollx = channel_roll->get_control_in()*simple_cos_yaw - channel_pitch->get_control_in()*simple_sin_yaw;
+        pitchx = channel_roll->get_control_in()*simple_sin_yaw + channel_pitch->get_control_in()*simple_cos_yaw;
     }else{
         // rotate roll, pitch input by -super simple heading (reverse of heading to home)
-        rollx = channel_roll->control_in*super_simple_cos_yaw - channel_pitch->control_in*super_simple_sin_yaw;
-        pitchx = channel_roll->control_in*super_simple_sin_yaw + channel_pitch->control_in*super_simple_cos_yaw;
+        rollx = channel_roll->get_control_in()*super_simple_cos_yaw - channel_pitch->get_control_in()*super_simple_sin_yaw;
+        pitchx = channel_roll->get_control_in()*super_simple_sin_yaw + channel_pitch->get_control_in()*super_simple_cos_yaw;
     }
 
     // rotate roll, pitch input from north facing to vehicle's perspective
-    channel_roll->control_in = rollx*ahrs.cos_yaw() + pitchx*ahrs.sin_yaw();
-    channel_pitch->control_in = -rollx*ahrs.sin_yaw() + pitchx*ahrs.cos_yaw();
+    channel_roll->set_control_in(rollx*ahrs.cos_yaw() + pitchx*ahrs.sin_yaw());
+    channel_pitch->set_control_in(-rollx*ahrs.sin_yaw() + pitchx*ahrs.cos_yaw());
 }
 
 // update_super_simple_bearing - adjusts simple bearing based on location
@@ -607,14 +608,11 @@ void Copter::read_AHRS(void)
     ahrs.update();
 }
 
-// read baro and sonar altitude at 10hz
+// read baro and rangefinder altitude at 10hz
 void Copter::update_altitude()
 {
     // read in baro altitude
     read_barometer();
-
-    // read in sonar altitude
-    sonar_alt           = read_sonar();
 
     // write altitude info to dataflash logs
     if (should_log(MASK_LOG_CTUN)) {

@@ -12,18 +12,17 @@ sitl-arm: all
 apm1 apm1-1280 apm2 apm2beta:
 	$(error $@ is deprecated on master branch; use master-AVR)
 
-flymaple: HAL_BOARD = HAL_BOARD_FLYMAPLE
-flymaple: TOOLCHAIN = ARM
-flymaple: all
-flymaple-hil: EXTRAFLAGS += "-DHIL_MODE=HIL_MODE_ATTITUDE "
-flymaple-hil: flymaple
+flymaple flymaple-hil:
+	$(error $@ is deprecated on master branch; use master-AVR)
 
 linux: HAL_BOARD = HAL_BOARD_LINUX
 linux: TOOLCHAIN = NATIVE
+linux: BUILDSYS_DEPRECATED = 1
 linux: all
 
 erleboard: HAL_BOARD = HAL_BOARD_LINUX
 erleboard: TOOLCHAIN = BBONE
+erleboard: BUILDSYS_DEPRECATED = 1
 erleboard: all
 
 zynq: HAL_BOARD = HAL_BOARD_LINUX
@@ -34,40 +33,54 @@ zynq-hil : zynq
 
 pxf: HAL_BOARD = HAL_BOARD_LINUX
 pxf: TOOLCHAIN = BBONE
+pxf: BUILDSYS_DEPRECATED = 1
 pxf: all
 
 bebop: HAL_BOARD = HAL_BOARD_LINUX
 bebop: TOOLCHAIN = BBONE
 bebop: LDFLAGS += "-static"
+bebop: BUILDSYS_DEPRECATED = 1
 bebop: all
 
 minlure: HAL_BOARD = HAL_BOARD_LINUX
 minlure: TOOLCHAIN = NATIVE
+minlure: BUILDSYS_DEPRECATED = 1
 minlure: all
 
 navio: HAL_BOARD = HAL_BOARD_LINUX
 navio: TOOLCHAIN = RPI
+navio: BUILDSYS_DEPRECATED = 1
 navio: all
 
 navio2: HAL_BOARD = HAL_BOARD_LINUX
 navio2: TOOLCHAIN = RPI
+navio2: BUILDSYS_DEPRECATED = 1
 navio2: all
 
 raspilot: HAL_BOARD = HAL_BOARD_LINUX
 raspilot: TOOLCHAIN = RPI
+raspilot: BUILDSYS_DEPRECATED = 1
 raspilot: all
 
 erlebrain2: HAL_BOARD = HAL_BOARD_LINUX
 erlebrain2: TOOLCHAIN = RPI
+erlebrain2: BUILDSYS_DEPRECATED  = 1
 erlebrain2: all
 
 bbbmini: HAL_BOARD = HAL_BOARD_LINUX
 bbbmini: TOOLCHAIN = BBONE
+bbbmini: BUILDSYS_DEPRECATED  = 1
 bbbmini: all
 
 bhat: HAL_BOARD = HAL_BOARD_LINUX
 bhat: TOOLCHAIN = RPI
+bhat: BUILDSYS_DEPRECATED  = 1
 bhat: all
+
+pxfmini: HAL_BOARD = HAL_BOARD_LINUX
+pxfmini: TOOLCHAIN = RPI
+pxfmini: BUILDSYS_DEPRECATED  = 1
+pxfmini: all
 
 qflight: HAL_BOARD = HAL_BOARD_LINUX
 qflight: TOOLCHAIN = QFLIGHT
@@ -80,10 +93,6 @@ empty: all
 qurt: HAL_BOARD = HAL_BOARD_QURT
 qurt: TOOLCHAIN = QURT
 qurt: all
-
-pxfmini: HAL_BOARD = HAL_BOARD_LINUX
-pxfmini: TOOLCHAIN = RPI
-pxfmini: all
 
 # cope with HIL targets
 %-hil: EXTRAFLAGS += "-DHIL_MODE=HIL_MODE_SENSORS "
@@ -111,6 +120,8 @@ $(1)-$(2) : EXTRAFLAGS += "-DFRAME_CONFIG=$(shell echo $(2) | tr a-z A-Z | sed s
 $(1)-$(2) : $(1)
 $(1)-$(2)-hil : $(1)-$(2)
 $(1)-$(2)-debug : $(1)-$(2)
+$(1)-$(2)-mavlink1 : $(1)-$(2)
+$(1)-$(2)-debug-mavlink1 : $(1)-$(2)
 $(1)-$(2)-hilsensors : $(1)-$(2)
 $(1)-$(2)-upload : $(1)-$(2)
 $(1)-$(2)-upload : $(1)-upload
@@ -119,6 +130,8 @@ endef
 define board_template
 $(1)-hil : $(1)
 $(1)-debug : $(1)
+$(1)-mavlink1 : $(1)
+$(1)-debug-mavlink1 : $(1)-debug
 $(1)-asan : $(1)
 $(1)-hilsensors : $(1)
 endef
