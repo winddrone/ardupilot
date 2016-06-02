@@ -409,27 +409,7 @@ void AP_TECS::_update_speed_demand(void)
     float velRateMax;
     float velRateMin;
     if ((_flags.badDescent) || (_flags.underspeed))
-    //my code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     {
-<<<<<<< HEAD
-        velRateMax =  _STEdot_max / _integ5_state;
-        velRateMin =  _STEdot_min / _integ5_state;
-    }
-    else
-    {
-        velRateMax =  _STEdot_max / _integ5_state;
-        velRateMin =  _STEdot_min / _integ5_state;
-    }
-    /*{
-        velRateMax = 0.5f * _STEdot_max / _integ5_state;
-        velRateMin = 0.5f * _STEdot_min / _integ5_state;
-    }
-    else
-    {
-        velRateMax = 0.5f * _STEdot_max / _integ5_state;
-        velRateMin = 0.5f * _STEdot_min / _integ5_state;
-    }*/
-=======
         velRateMax = 0.5f * _STEdot_max / _TAS_state;
         velRateMin = 0.5f * _STEdot_min / _TAS_state;
     }
@@ -438,7 +418,6 @@ void AP_TECS::_update_speed_demand(void)
         velRateMax = 0.5f * _STEdot_max / _TAS_state;
         velRateMin = 0.5f * _STEdot_min / _TAS_state;
     }
->>>>>>> WindDrone
 
     // Apply rate limit
     if ((_TAS_dem - _TAS_dem_adj) > (velRateMax * 0.1f))

@@ -89,12 +89,8 @@ float AP_L1_Control::lateral_acceleration(void) const
 
 int32_t AP_L1_Control::nav_bearing_cd(void) const
 {
-<<<<<<< HEAD
     return RadiansToCentiDegrees(_nav_bearing); // my code
 	// return wrap_180_cd(RadiansToCentiDegrees(_nav_bearing)); //original code
-=======
-    return wrap_180_cd(RadiansToCentiDegrees(_nav_bearing));
->>>>>>> WindDrone
 }
 
 int32_t AP_L1_Control::bearing_error_cd(void) const
@@ -357,29 +353,6 @@ void AP_L1_Control::update_loiter(const struct Location &center_WP, float radius
     _prevent_indecision(Nu);
     _last_Nu = Nu;
 
-<<<<<<< HEAD
-	Nu = constrain_float(Nu, -M_PI_2, M_PI_2); //Limit Nu to +- Pi/2
-
-	/*hal.console->println("Nu");
-	hal.console->println(Nu);*/
-
-	//Calculate lat accln demand to capture center_WP (use L1 guidance law)
-	float latAccDemCap = K_L1 * groundSpeed * groundSpeed / _L1_dist * sinf(Nu);
-	
-	//Calculate radial position and velocity errors
-	float xtrackVelCirc = -ltrackVelCap; // Radial outbound velocity - reuse previous radial inbound velocity
-	float xtrackErrCirc = A_air.length() - radius; // Radial distance from the loiter circle
-
-	// keep crosstrack error for reporting
-	_crosstrack_error = xtrackErrCirc;
-	
-	//Calculate PD control correction to circle waypoint_ahrs.roll
-	float latAccDemCircPD = (xtrackErrCirc * Kx + xtrackVelCirc * Kv);
-	
-	//Calculate tangential velocity
-	float velTangent = xtrackVelCap * float(loiter_direction);
-	
-=======
     Nu = constrain_float(Nu, -M_PI_2, M_PI_2); //Limit Nu to +- Pi/2
 
     //Calculate lat accln demand to capture center_WP (use L1 guidance law)
@@ -398,7 +371,6 @@ void AP_L1_Control::update_loiter(const struct Location &center_WP, float radius
     //Calculate tangential velocity
     float velTangent = xtrackVelCap * float(loiter_direction);
 
->>>>>>> WindDrone
     //Prevent PD demand from turning the wrong way by limiting the command when flying the wrong way
     if (ltrackVelCap < 0.0f && velTangent < 0.0f) {
         latAccDemCircPD =  MAX(latAccDemCircPD, 0.0f);
