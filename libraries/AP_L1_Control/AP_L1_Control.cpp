@@ -56,7 +56,6 @@ int32_t AP_L1_Control::nav_roll_cd(void) const
 
 	ret = constrain_float(ret, -9000, 9000);
 	return ret;
-
 }
 
 int32_t AP_L1_Control::loiter3d_nav_roll_cd(void) const
