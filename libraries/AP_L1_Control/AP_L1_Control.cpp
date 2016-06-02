@@ -49,7 +49,6 @@ const AP_Param::GroupInfo AP_L1_Control::var_info[] = {
  */
 int32_t AP_L1_Control::nav_roll_cd(void) const
 {
-<<<<<<< HEAD
 	float ret;	
 	ret = cosf(_ahrs.pitch)*degrees(atanf(_latAccDem * 0.101972f) * 100.0f); // 0.101972 = 1/9.81
 
@@ -57,12 +56,7 @@ int32_t AP_L1_Control::nav_roll_cd(void) const
 
 	ret = constrain_float(ret, -9000, 9000);
 	return ret;
-=======
-    float ret;
-    ret = cosf(_ahrs.pitch)*degrees(atanf(_latAccDem * 0.101972f) * 100.0f); // 0.101972 = 1/9.81
-    ret = constrain_float(ret, -9000, 9000);
-    return ret;
->>>>>>> WindDrone
+
 }
 
 int32_t AP_L1_Control::loiter3d_nav_roll_cd(void) const
@@ -96,12 +90,8 @@ float AP_L1_Control::lateral_acceleration(void) const
 
 int32_t AP_L1_Control::nav_bearing_cd(void) const
 {
-<<<<<<< HEAD
     return RadiansToCentiDegrees(_nav_bearing); // my code
 	// return wrap_180_cd(RadiansToCentiDegrees(_nav_bearing)); //original code
-=======
-    return wrap_180_cd(RadiansToCentiDegrees(_nav_bearing));
->>>>>>> WindDrone
 }
 
 int32_t AP_L1_Control::bearing_error_cd(void) const
@@ -364,29 +354,6 @@ void AP_L1_Control::update_loiter(const struct Location &center_WP, float radius
     _prevent_indecision(Nu);
     _last_Nu = Nu;
 
-<<<<<<< HEAD
-	Nu = constrain_float(Nu, -M_PI_2, M_PI_2); //Limit Nu to +- Pi/2
-
-	/*hal.console->println("Nu");
-	hal.console->println(Nu);*/
-
-	//Calculate lat accln demand to capture center_WP (use L1 guidance law)
-	float latAccDemCap = K_L1 * groundSpeed * groundSpeed / _L1_dist * sinf(Nu);
-	
-	//Calculate radial position and velocity errors
-	float xtrackVelCirc = -ltrackVelCap; // Radial outbound velocity - reuse previous radial inbound velocity
-	float xtrackErrCirc = A_air.length() - radius; // Radial distance from the loiter circle
-
-	// keep crosstrack error for reporting
-	_crosstrack_error = xtrackErrCirc;
-	
-	//Calculate PD control correction to circle waypoint_ahrs.roll
-	float latAccDemCircPD = (xtrackErrCirc * Kx + xtrackVelCirc * Kv);
-	
-	//Calculate tangential velocity
-	float velTangent = xtrackVelCap * float(loiter_direction);
-	
-=======
     Nu = constrain_float(Nu, -M_PI_2, M_PI_2); //Limit Nu to +- Pi/2
 
     //Calculate lat accln demand to capture center_WP (use L1 guidance law)
@@ -405,7 +372,6 @@ void AP_L1_Control::update_loiter(const struct Location &center_WP, float radius
     //Calculate tangential velocity
     float velTangent = xtrackVelCap * float(loiter_direction);
 
->>>>>>> WindDrone
     //Prevent PD demand from turning the wrong way by limiting the command when flying the wrong way
     if (ltrackVelCap < 0.0f && velTangent < 0.0f) {
         latAccDemCircPD =  MAX(latAccDemCircPD, 0.0f);
@@ -810,7 +776,8 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
 
 
     //Sum PD control and centripetal acceleration to calculate lateral manoeuvre demand
-    float latAccDemCirc = loiter_direction * (latAccDemCircPD + latAccDemCircCtr) * sinf(acosf(-cosf(_nav_bearing)*sin_slope));
+    //float latAccDemCirc = loiter_direction * (latAccDemCircPD + latAccDemCircCtr) * sinf(acosf(-cosf(_nav_bearing)*sin_slope)); // projection to xy plane
+    float latAccDemCirc = loiter_direction * (latAccDemCircPD + latAccDemCircCtr);
 
     // hal.console->println(sinf(acosf(-cosf(_nav_bearing)*sinf(M_PI/9))));
     // Perform switchover between 'capture' and 'circle' modes at the
