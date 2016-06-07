@@ -961,7 +961,7 @@ void Plane::do_loiter_3d()
     intersection.rot_matrix_pe.c.z = cos_theta;
 
 
-    loiter.direction = 1;
+    loiter.direction = -1;
 
 
     /*hal.console->println("Welcome to Loiter 3D");
@@ -983,8 +983,8 @@ void Plane::do_eight_sphere()
 {
     float LOCATION_SCALING_FACTOR_INV = 89.83204953368922;
 
-    eight_sphere.cross_angle = radians(20);
-    eight_sphere.arc_length_angle = radians(20);
+    eight_sphere.cross_angle = radians(30);
+    eight_sphere.arc_length_angle = radians(10);
 
     eight_sphere.psi = radians(0);
     eight_sphere.theta = radians(0);
@@ -1061,7 +1061,6 @@ void Plane::do_eight_sphere()
     eight_sphere.rot_matrix_cross2.c.x = cos_cross;
     eight_sphere.rot_matrix_cross2.c.y = -sin_cross;
     eight_sphere.rot_matrix_cross2.c.z = 0;
-
 
     eight_sphere.segment = 0;
 

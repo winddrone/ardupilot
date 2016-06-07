@@ -83,7 +83,7 @@ public:
 
 	virtual void update_eight_plane(const struct Location &center_WP, float radius, Vector2f axis, float axis_proj, float v_axis, const struct Location &first_turn, const struct Location &second_turn, const struct Location &ta_loc, const struct Location &tb_loc, int8_t &branch, int8_t &branch_turn1, int8_t loiter_direction) = 0;
 
-	virtual void update_loiter_3d(const struct Location &center_WP, float radius, float slope, int32_t dist, int8_t loiter_direction, Matrix3f M_pe, int32_t &height) = 0;
+	virtual void update_loiter_3d(const struct Location &center_WP, float radius, float slope, float orientation, int32_t dist, int8_t loiter_direction, Matrix3f M_pe, int32_t &height) = 0;
 
 	virtual void update_eight_sphere() = 0;
 
