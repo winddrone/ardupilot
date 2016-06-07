@@ -114,9 +114,9 @@ def kill_tasks():
 
     import psutil
     for proc in psutil.process_iter():
-        if proc.status() == psutil.STATUS_ZOMBIE:
+        if proc.status == psutil.STATUS_ZOMBIE:
             continue
-        if proc.name() in victim_names:
+        if proc.name in victim_names:
             proc.kill()
 
 # clean up processes at exit:
@@ -335,6 +335,16 @@ _options_for_frame = {
         "make_target": "sitl-heli-compound",
         "waf_target": "bin/arducopter-coax", # is this correct? -pb201604301447
     },
+    "singlecopter": {
+	    "make_target": "sitl-single",
+            "waf_target": "bin/arducopter-single",
+            "default_params_filename": "SingleCopter.parm",
+    },
+    "coaxcopter": {
+	    "make_target": "sitl-coax",
+            "waf_target": "bin/arducopter-coax",
+            "default_params_filename": "CoaxCopter.parm",
+    },
     # PLANE
     "quadplane-tilttri" : {
         "build_target" : "sitl-tri",
@@ -424,7 +434,7 @@ def options_for_frame(frame, vehicle, opts):
 
     return ret
 
-def do_build_waf(vehicledir, opts, frame_options):
+def do_build_waf(opts, frame_options):
     '''build sitl using waf'''
     progress("WAF build")
 
@@ -469,7 +479,7 @@ def do_build(vehicledir, opts, frame_options):
     '''build build target (e.g. sitl) in directory vehicledir'''
 
     if opts.build_system == 'waf':
-        return do_build_waf(vehicledir, opts, frame_options)
+        return do_build_waf(opts, frame_options)
 
     old_dir = os.getcwd()
 
