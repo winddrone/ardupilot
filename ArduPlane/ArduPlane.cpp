@@ -582,6 +582,7 @@ void Plane::update_flight_mode(void)
 
     case LOITER_3D:
     case EIGHT_SPHERE:
+    case WINDDRONE:
         loiter3d_calc_nav_roll();
         loiter3d_calc_nav_pitch();
         calc_throttle();
@@ -828,6 +829,10 @@ void Plane::update_navigation()
         update_eight_sphere();
         break;
 
+    case WINDDRONE:
+        update_winddrone();
+        break;
+
     case CRUISE:
         update_cruise();
         break;
@@ -947,6 +952,19 @@ void Plane::update_alt()
         f << now << " " << A_air.x << " " << A_air.y << " " << A_air.z << " " << relative_target_altitude_cm()/100.0f << endl;
         f.close();*/
         //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        if(control_mode == WINDDRONE) {
+
+            SpdHgt_Controller->update_pitch_throttle_sphere(relative_target_altitude_cm(),
+                                                             target_airspeed_cm,
+                                                             flight_stage,
+                                                             auto_state.land_in_progress,
+                                                             distance_beyond_land_wp,
+                                                             get_takeoff_pitch_min_cd(),
+                                                             throttle_nudge,
+                                                             tecs_hgt_afe(),
+                                                             aerodynamic_load_factor);
+        }
+        else {
         SpdHgt_Controller->update_pitch_throttle(relative_target_altitude_cm(),
                                                  target_airspeed_cm,
                                                  flight_stage,
@@ -956,6 +974,7 @@ void Plane::update_alt()
                                                  throttle_nudge,
                                                  tecs_hgt_afe(),
                                                  aerodynamic_load_factor);
+        }
     }
 }
 

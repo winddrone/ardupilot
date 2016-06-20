@@ -55,6 +55,7 @@ void Plane::send_heartbeat(mavlink_channel_t chan)
     case EIGHT_PLANE:
     case LOITER_3D: // not finished
     case EIGHT_SPHERE: // not finished
+    case WINDDRONE: // not finished
     case GUIDED:
     case CIRCLE:
     case QRTL:
@@ -208,6 +209,7 @@ void Plane::send_extended_status1(mavlink_channel_t chan)
     case EIGHT_PLANE:
     case LOITER_3D: // not finished
     case EIGHT_SPHERE: // not finished
+    case WINDDRONE:
     case GUIDED:
     case CIRCLE:
     case QRTL:
@@ -1267,6 +1269,11 @@ void GCS_MAVLINK_Plane::handleMessage(mavlink_message_t* msg)
 
         case MAV_CMD_NAV_EIGHT_SPHERE:
             plane.set_mode(EIGHT_SPHERE);
+            result = MAV_RESULT_ACCEPTED;
+            break;
+
+        case MAV_CMD_NAV_WINDDRONE:
+            plane.set_mode(WINDDRONE);
             result = MAV_RESULT_ACCEPTED;
             break;
 

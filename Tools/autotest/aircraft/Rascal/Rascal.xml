@@ -519,4 +519,51 @@
             </function>
         </axis>
     </aerodynamics>
+
+	<external_reactions>
+
+		<force name="Tether-force" frame="LOCAL">
+			<function>
+			<product>
+			<pow>
+				<sum>
+					<pow>	
+					<property>position/distance-from-start-mag-mt</property>
+					<value>2.0</value>
+					</pow>
+					<pow>	
+					<property>position/distance-from-start-alt-mt</property>
+					<value>2.0</value>
+					</pow>
+
+				</sum>
+				<value>0.5</value>
+			</pow>
+				<property>position/tether-strength</property>
+			</product>
+			</function>
+			<location unit="IN">
+				<x>37.4</x>
+				<y>0</y>
+				<z>0</z>
+			</location>
+			<direction>
+				<x>
+				<property>position/distance-from-start-lat-mt</property>
+				</x>
+				<y>
+				<property>position/distance-from-start-lng-mt</property>
+				</y>
+				<z>
+				<product>
+				<property>position/distance-from-start-alt-mt</property>
+				<value>-1</value>
+				</product>
+				</z>
+			</direction>
+		</force>
+
+	</external_reactions>
+    
+
 </fdm_config>

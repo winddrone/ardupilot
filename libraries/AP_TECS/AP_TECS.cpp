@@ -318,12 +318,15 @@ void AP_TECS::update_50hz(void)
             _height_filter.height += integ3_input*DT;
         }
     }
+    //specific spring constant from AP_L1_Control, check that both values are the same!!!!!
+    float spec_spring_const = 0.2/5.9;
 
     // Update and average speed rate of change
     // Get DCM
     const Matrix3f &rotMat = _ahrs.get_rotation_body_to_ned();
     // Calculate speed rate of change
-    float temp = rotMat.c.x * GRAVITY_MSS + _ahrs.get_ins().get_accel().x;
+    Vector3f posned_body = rotMat.transposed()*posned;
+    float temp = rotMat.c.x * GRAVITY_MSS + _ahrs.get_ins().get_accel().x - posned_body.x*spec_spring_const;
     // take 5 point moving average
     _vel_dot = _vdot_filter.apply(temp);
 
@@ -550,6 +553,7 @@ void AP_TECS::_detect_underspeed(void)
 
 void AP_TECS::_update_energies(void)
 {
+
     // Calculate specific energy demands
     _SPE_dem = _hgt_dem_adj * GRAVITY_MSS;
     _SKE_dem = 0.5f * _TAS_dem_adj * _TAS_dem_adj;
@@ -565,6 +569,7 @@ void AP_TECS::_update_energies(void)
     // Calculate specific energy rate
     _SPEdot = _climb_rate * GRAVITY_MSS;
     _SKEdot = _TAS_state * _vel_dot;
+
 
 }
 
@@ -1035,6 +1040,291 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
 
     // Calculate pitch demand
     _update_pitch();
+
+    // log to DataFlash
+    DataFlash_Class::instance()->Log_Write("TECS", "TimeUS,h,dh,hdem,dhdem,spdem,sp,dsp,ith,iph,th,ph,dspdem,w,f", "QfffffffffffffB",
+                                           now,
+                                           (double)_height,
+                                           (double)_climb_rate,
+                                           (double)_hgt_dem_adj,
+                                           (double)_hgt_rate_dem,
+                                           (double)_TAS_dem_adj,
+                                           (double)_TAS_state,
+                                           (double)_vel_dot,
+                                           (double)_integTHR_state,
+                                           (double)_integSEB_state,
+                                           (double)_throttle_dem,
+                                           (double)_pitch_dem,
+                                           (double)_TAS_rate_dem,
+                                           (double)logging.SKE_weighting,
+                                           _flags_byte);
+    DataFlash_Class::instance()->Log_Write("TEC2", "TimeUS,KErr,PErr,EDelta,LF", "Qffff",
+                                           now,
+                                           (double)logging.SKE_error,
+                                           (double)logging.SPE_error,
+                                           (double)logging.SEB_delta,
+                                           (double)load_factor);
+}
+
+void AP_TECS::update_pitch_throttle_sphere(int32_t hgt_dem_cm,
+                                    int32_t EAS_dem_cm,
+                                    enum FlightStage flight_stage,
+                                    bool is_doing_auto_land,
+                                    float distance_beyond_land_wp,
+                                    int32_t ptchMinCO_cd,
+                                    int16_t throttle_nudge,
+                                    float hgt_afe,
+                                    float load_factor)
+{
+    // Calculate time in seconds since last update
+    uint64_t now = AP_HAL::micros64();
+    _DT = (now - _update_pitch_throttle_last_usec) * 1.0e-6f;
+    _update_pitch_throttle_last_usec = now;
+
+    _flags.is_doing_auto_land = is_doing_auto_land;
+    _distance_beyond_land_wp = distance_beyond_land_wp;
+    _flight_stage = flight_stage;
+
+    // Convert inputs
+    _hgt_dem = hgt_dem_cm * 0.01f;
+    _EAS_dem = EAS_dem_cm * 0.01f;
+
+    // Update the speed estimate using a 2nd order complementary filter
+    _update_speed(load_factor);
+
+    if (aparm.takeoff_throttle_max != 0 &&
+            (_flight_stage == AP_TECS::FLIGHT_TAKEOFF || _flight_stage == AP_TECS::FLIGHT_LAND_ABORT)) {
+        _THRmaxf  = aparm.takeoff_throttle_max * 0.01f;
+    } else {
+        _THRmaxf  = aparm.throttle_max * 0.01f;
+    }
+    _THRminf  = aparm.throttle_min * 0.01f;
+
+    // work out the maximum and minimum pitch
+    // if TECS_PITCH_{MAX,MIN} isn't set then use
+    // LIM_PITCH_{MAX,MIN}. Don't allow TECS_PITCH_{MAX,MIN} to be
+    // larger than LIM_PITCH_{MAX,MIN}
+    if (_pitch_max <= 0) {
+        _PITCHmaxf = aparm.pitch_limit_max_cd * 0.01f;
+    } else {
+        _PITCHmaxf = MIN(_pitch_max, aparm.pitch_limit_max_cd * 0.01f);
+    }
+
+    if (_pitch_min >= 0) {
+        _PITCHminf = aparm.pitch_limit_min_cd * 0.01f;
+    } else {
+        _PITCHminf = MAX(_pitch_min, aparm.pitch_limit_min_cd * 0.01f);
+    }
+
+    // apply temporary pitch limit and clear
+    if (_pitch_max_limit < 90) {
+        _PITCHmaxf = constrain_float(_PITCHmaxf, -90, _pitch_max_limit);
+        _PITCHminf = constrain_float(_PITCHminf, -_pitch_max_limit, _PITCHmaxf);
+        _pitch_max_limit = 90;
+    }
+
+    if (flight_stage == FLIGHT_LAND_FINAL) {
+        // in flare use min pitch from LAND_PITCH_CD
+        _PITCHminf = MAX(_PITCHminf, aparm.land_pitch_cd * 0.01f);
+
+        // and use max pitch from TECS_LAND_PMAX
+        if (_land_pitch_max != 0) {
+            _PITCHmaxf = MIN(_PITCHmaxf, _land_pitch_max);
+        }
+
+        // and allow zero throttle
+        _THRminf = 0;
+    } else if ((flight_stage == FLIGHT_LAND_APPROACH || flight_stage == FLIGHT_LAND_PREFLARE) && (-_climb_rate) > _land_sink) {
+        // constrain the pitch in landing as we get close to the flare
+        // point. Use a simple linear limit from 15 meters after the
+        // landing point
+        float time_to_flare = (- hgt_afe / _climb_rate) - aparm.land_flare_sec;
+        if (time_to_flare < 0) {
+            // we should be flaring already
+            _PITCHminf = MAX(_PITCHminf, aparm.land_pitch_cd * 0.01f);
+        } else if (time_to_flare < timeConstant()*2) {
+            // smoothly move the min pitch to the flare min pitch over
+            // twice the time constant
+            float p = time_to_flare/(2*timeConstant());
+            float pitch_limit_cd = p*aparm.pitch_limit_min_cd + (1-p)*aparm.land_pitch_cd;
+#if 0
+            ::printf("ttf=%.1f hgt_afe=%.1f _PITCHminf=%.1f pitch_limit=%.1f climb=%.1f\n",
+                     time_to_flare, hgt_afe, _PITCHminf, pitch_limit_cd*0.01f, _climb_rate);
+#endif
+            _PITCHminf = MAX(_PITCHminf, pitch_limit_cd*0.01f);
+        }
+    }
+
+    // convert to radians
+    _PITCHmaxf = radians(_PITCHmaxf);
+    _PITCHminf = radians(_PITCHminf);
+
+    // initialise selected states and variables if DT > 1 second or in climbout
+    _initialise_states(ptchMinCO_cd, hgt_afe);
+
+    // Calculate Specific Total Energy Rate Limits
+    _update_STE_rate_lim();
+
+    // Calculate the speed demand
+    _update_speed_demand();
+
+    // Calculate the height demand
+    _update_height_demand();
+
+    // Detect underspeed condition
+    _detect_underspeed();
+
+    // Calculate specific energy quantitiues
+    //_update_energies();
+    // our code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        Vector3f posned;
+        _ahrs.get_relative_position_NED(posned);
+        Vector3f vel;
+        _ahrs.get_velocity_NED(vel);
+
+
+        // Calculate specific energy demands
+        _SPE_dem = 0.5*_hgt_dem_adj*_hgt_dem_adj*0.2/5.9;
+        _SKE_dem = 0.5f * _TAS_dem_adj * _TAS_dem_adj;
+
+        // Calculate specific energy rate demands
+        _SPEdot_dem = _hgt_rate_dem * GRAVITY_MSS;
+        _SKEdot_dem = _TAS_state * _TAS_rate_dem;
+
+        // Calculate specific energy
+        _SPE_est = 0.5*0.2/5.9*posned.length()*posned.length();
+        _SKE_est = 0.5f * _TAS_state * _TAS_state;
+
+        // Calculate specific energy rate
+        _SPEdot = vel*posned * 0.2/5.9;
+        _SKEdot = _TAS_state * _vel_dot;
+
+    // Calculate throttle demand - use simple pitch to throttle if no airspeed sensor
+    if (_ahrs.airspeed_sensor_enabled()) {
+        _update_throttle();
+    } else {
+        _update_throttle_option(throttle_nudge);
+    }
+
+    // Detect bad descent due to demanded airspeed being too high
+    _detect_bad_descent();
+
+    // Calculate pitch demand
+    //_update_pitch();
+    // Calculate Speed/Height Control Weighting
+        // This is used to determine how the pitch control prioritises speed and height control
+        // A weighting of 1 provides equal priority (this is the normal mode of operation)
+        // A SKE_weighting of 0 provides 100% priority to height control. This is used when no airspeed measurement is available
+        // A SKE_weighting of 2 provides 100% priority to speed control. This is used when an underspeed condition is detected. In this instance, if airspeed
+        // rises above the demanded value, the pitch angle will be increased by the TECS controller.
+        float SKE_weighting = constrain_float(_spdWeight, 0.0f, 2.0f);
+        if (!_ahrs.airspeed_sensor_enabled()) {
+            SKE_weighting = 0.0f;
+        } else if ( _flags.underspeed || _flight_stage == AP_TECS::FLIGHT_TAKEOFF || _flight_stage == AP_TECS::FLIGHT_LAND_ABORT) {
+            SKE_weighting = 2.0f;
+        } else if (_flags.is_doing_auto_land) {
+            if (_spdWeightLand < 0) {
+                // use sliding scale from normal weight down to zero at landing
+                float scaled_weight = _spdWeight * (1.0f - constrain_float(_path_proportion,0,1));
+                SKE_weighting = constrain_float(scaled_weight, 0.0f, 2.0f);
+            } else {
+                SKE_weighting = constrain_float(_spdWeightLand, 0.0f, 2.0f);
+            }
+        }
+
+        logging.SKE_weighting = SKE_weighting;
+
+        float SPE_weighting = 2.0f - SKE_weighting;
+
+        // Calculate Specific Energy Balance demand, and error
+        float SEB_dem      = _SPE_dem * SPE_weighting - _SKE_dem * SKE_weighting;
+        float SEBdot_dem   = _SPEdot_dem * SPE_weighting - _SKEdot_dem * SKE_weighting;
+        float SEB_error    = SEB_dem - (_SPE_est * SPE_weighting - _SKE_est * SKE_weighting);
+        float SEBdot_error = SEBdot_dem - (_SPEdot * SPE_weighting - _SKEdot * SKE_weighting);
+
+        logging.SKE_error = _SKE_dem - _SKE_est;
+        logging.SPE_error = _SPE_dem - _SPE_est;
+
+        // Calculate integrator state, constraining input if pitch limits are exceeded
+        float integSEB_input = SEB_error * _get_i_gain();
+        if (_pitch_dem > _PITCHmaxf)
+        {
+            integSEB_input = MIN(integSEB_input, _PITCHmaxf - _pitch_dem);
+        }
+        else if (_pitch_dem < _PITCHminf)
+        {
+            integSEB_input = MAX(integSEB_input, _PITCHminf - _pitch_dem);
+        }
+        float integSEB_delta = integSEB_input * _DT;
+
+    #if 0
+        if (_flight_stage == FLIGHT_LAND_FINAL && fabsf(_climb_rate) > 0.2f) {
+            ::printf("_hgt_rate_dem=%.1f _hgt_dem_adj=%.1f climb=%.1f _flare_counter=%u _pitch_dem=%.1f SEB_dem=%.2f SEBdot_dem=%.2f SEB_error=%.2f SEBdot_error=%.2f\n",
+                     _hgt_rate_dem, _hgt_dem_adj, _climb_rate, _flare_counter, degrees(_pitch_dem),
+                     SEB_dem, SEBdot_dem, SEB_error, SEBdot_error);
+        }
+    #endif
+
+
+        // Apply max and min values for integrator state that will allow for no more than
+        // 5deg of saturation. This allows for some pitch variation due to gusts before the
+        // integrator is clipped. Otherwise the effectiveness of the integrator will be reduced in turbulence
+        // During climbout/takeoff, bias the demanded pitch angle so that zero speed error produces a pitch angle
+        // demand equal to the minimum value (which is )set by the mission plan during this mode). Otherwise the
+        // integrator has to catch up before the nose can be raised to reduce speed during climbout.
+        // During flare a different damping gain is used
+        float gainInv = (_TAS_state * timeConstant() * 0.2/5.9*posned.length());
+        float temp = SEB_error + SEBdot_dem * timeConstant();
+
+        float pitch_damp = _ptchDamp;
+        if (_flight_stage == AP_TECS::FLIGHT_LAND_FINAL) {
+            pitch_damp = _landDamp;
+        } else if (!is_zero(_land_pitch_damp) && _flags.is_doing_auto_land) {
+            pitch_damp = _land_pitch_damp;
+        }
+        temp += SEBdot_error * pitch_damp;
+
+        if (_flight_stage == AP_TECS::FLIGHT_TAKEOFF || _flight_stage == AP_TECS::FLIGHT_LAND_ABORT) {
+            temp += _PITCHminf * gainInv;
+        }
+        float integSEB_min = (gainInv * (_PITCHminf - 0.0783f)) - temp;
+        float integSEB_max = (gainInv * (_PITCHmaxf + 0.0783f)) - temp;
+        float integSEB_range = integSEB_max - integSEB_min;
+
+        logging.SEB_delta = integSEB_delta;
+
+        // don't allow the integrator to rise by more than 20% of its full
+        // range in one step. This prevents single value glitches from
+        // causing massive integrator changes. See Issue#4066
+        integSEB_delta = constrain_float(integSEB_delta, -integSEB_range*0.1f, integSEB_range*0.1f);
+
+        // integrate
+        _integSEB_state = constrain_float(_integSEB_state + integSEB_delta, integSEB_min, integSEB_max);
+
+        // Calculate pitch demand from specific energy balance signals
+        _pitch_dem_unc = (temp + _integSEB_state) / gainInv;
+
+        // Constrain pitch demand
+        _pitch_dem = constrain_float(_pitch_dem_unc, _PITCHminf, _PITCHmaxf);
+
+        // Rate limit the pitch demand to comply with specified vertical
+        // acceleration limit
+        float ptchRateIncr = _DT * _vertAccLim / _TAS_state;
+
+        if ((_pitch_dem - _last_pitch_dem) > ptchRateIncr)
+        {
+            _pitch_dem = _last_pitch_dem + ptchRateIncr;
+        }
+        else if ((_pitch_dem - _last_pitch_dem) < -ptchRateIncr)
+        {
+            _pitch_dem = _last_pitch_dem - ptchRateIncr;
+        }
+
+        // re-constrain pitch demand
+        _pitch_dem = constrain_float(_pitch_dem, _PITCHminf, _PITCHmaxf);
+
+        _last_pitch_dem = _pitch_dem;
 
     // log to DataFlash
     DataFlash_Class::instance()->Log_Write("TECS", "TimeUS,h,dh,hdem,dhdem,spdem,sp,dsp,ith,iph,th,ph,dspdem,w,f", "QfffffffffffffB",

@@ -55,6 +55,9 @@ void Plane::adjust_altitude_target()
     if (control_mode == LOITER_3D || control_mode == EIGHT_SPHERE) {
         set_target_altitude(intersection.height);
     }
+    if(control_mode == WINDDRONE) {
+        set_target_altitude(100*circ_on_sphere.sphere_radius);
+    }
 
     altitude_error_cm = calc_altitude_error_cm();
 }

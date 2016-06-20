@@ -741,6 +741,20 @@ private:
 
     } eight_sphere;
 
+
+    struct Circle_on_sphere {
+
+        Vector3f normal_vec;
+        float sphere_radius;
+        float distance;
+
+        struct Location sphere_center;
+
+        float circle_radius;
+
+
+    } circ_on_sphere;
+
     // Conditional command
     // A value used in condition commands (eg delay, change alt, etc.)
     // For example in a change altitude command, it is the altitude to change to.
@@ -965,6 +979,7 @@ private:
     void do_eight_plane();
     void do_loiter_3d();
     void do_eight_sphere();
+    void do_winddrone();
     void do_take_picture();
     bool verify_loiter_heading(bool init);
     void log_picture();
@@ -1013,6 +1028,7 @@ private:
     void update_eight_plane();
     void update_loiter_3d();
     void update_eight_sphere();
+    void update_winddrone();
     void update_cruise();
     void update_fbwb_speed_height(void);
     void setup_turn_angle(void);

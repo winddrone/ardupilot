@@ -87,6 +87,8 @@ public:
 
 	virtual void update_eight_sphere() = 0;
 
+	virtual void update_winddrone(Vector3f normal_vec, float sphere_radius, float circle_radius, struct Location sphere_center, float distance, int8_t loiter_direction) = 0;
+
 	// update the internal state of the navigation controller, given a
 	// fixed heading. This is the step function for navigation control
 	// for a fixed heading.  This function is called at regular

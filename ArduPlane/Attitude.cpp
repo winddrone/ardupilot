@@ -552,7 +552,7 @@ void Plane::loiter3d_calc_nav_pitch()
  */
 void Plane::loiter3d_calc_nav_roll()
 {
-    nav_roll_cd = nav_controller->nav_roll_cd(); //nav_controller->loiter3d_nav_roll_cd();
+    nav_roll_cd = nav_controller->target_bearing_cd(); //->nav_roll_cd(); //nav_controller->loiter3d_nav_roll_cd();
     update_load_factor();
     nav_roll_cd = constrain_int32(nav_roll_cd, -roll_limit_cd, roll_limit_cd);
     //hal.console->println("roll");
@@ -1310,6 +1310,7 @@ bool Plane::allow_reverse_thrust(void)
         break;
     case LOITER_3D:
     case EIGHT_SPHERE:
+    case WINDDRONE:
         // have to finish it
     case RTL:
         allow |= (g.use_reverse_thrust & USE_REVERSE_THRUST_RTL);

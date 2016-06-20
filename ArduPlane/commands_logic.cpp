@@ -1066,6 +1066,24 @@ void Plane::do_eight_sphere()
 
 }
 
+void Plane::do_winddrone()
+{
+
+    circ_on_sphere.normal_vec.x = 0;
+    circ_on_sphere.normal_vec.y = 0;
+    circ_on_sphere.normal_vec.z = -1;
+
+    circ_on_sphere.sphere_radius = 100.0;
+
+    circ_on_sphere.distance = 80;
+
+    circ_on_sphere.sphere_center = home;
+
+    circ_on_sphere.circle_radius = sqrtf(circ_on_sphere.sphere_radius*circ_on_sphere.sphere_radius - circ_on_sphere.distance*circ_on_sphere.distance);
+
+
+}
+
 void Plane::do_change_speed(const AP_Mission::Mission_Command& cmd)
 {
     switch (cmd.content.speed.speed_type)

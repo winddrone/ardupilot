@@ -50,9 +50,9 @@ const AP_Param::GroupInfo AP_L1_Control::var_info[] = {
 int32_t AP_L1_Control::nav_roll_cd(void) const
 {
 	float ret;	
-	ret = cosf(_ahrs.pitch)*degrees(atanf(_latAccDem * 0.101972f) * 100.0f); // 0.101972 = 1/9.81
+	//ret = cosf(_ahrs.pitch)*degrees(atanf(_latAccDem * 0.101972f) * 100.0f); // 0.101972 = 1/9.81 cos(pitch)wrong?
 
-	//ret = degrees(atanf(_latAccDem * 0.101972f/cosf(_ahrs.pitch)) * 100.0f); // my test code
+	ret = degrees(atanf(_latAccDem * 0.101972f/cosf(_ahrs.pitch)) * 100.0f); // my test code
 
 	ret = constrain_float(ret, -9000, 9000);
 	return ret;
@@ -397,12 +397,18 @@ void AP_L1_Control::update_loiter(const struct Location &center_WP, float radius
         _nav_bearing = atan2f(-A_air_unit.y , -A_air_unit.x); // bearing (radians)from AC to L1 point
     }
 
-	/*fstream f;
-	f.open("loitertoalt.txt", ios::out | ios::app);
-	f << A_air.x << " " << A_air.y << " " << center_WP.alt << " " << _current_loc.alt << endl;
-	f.close();*/
+	fstream f;
+	f.open("loiter.txt", ios::out | ios::app);
+	f << A_air.x << " " << A_air.y << " " << center_WP.alt << " " << _current_loc.alt << " " << _ahrs.roll_sensor << " " << _ahrs.pitch_sensor << " " << _ahrs.yaw_sensor<< endl;
+	f.close();
     _data_is_stale = false; // status are correctly updated with current waypoint data
 
+    hal.console->print("roll: ");
+    hal.console->print(_ahrs.roll_sensor/100 );
+    hal.console->print(", pitch");
+    hal.console->print(_ahrs.pitch_sensor/100 );
+    hal.console->print(", yaw: ");
+    hal.console->println(_ahrs.yaw_sensor/100 );
 }
 
 float AP_L1_Control::goto_loc_acc(const struct Location &center_WP, const struct Location &_current_loc, Vector2f _groundspeed_vector) {
@@ -859,6 +865,89 @@ void AP_L1_Control::update_eight_sphere()
 {
 
 }
+
+void AP_L1_Control::update_winddrone(Vector3f normal_vec, float sphere_radius, float circle_radius, struct Location sphere_center, float distance, int8_t loiter_direction)
+{
+
+    // Calculate guidance gains used by PD loop (used during circle tracking)
+    float omega = (6.2832f / _L1_period);
+    float Kx = omega * omega;
+    float Kv = 2.0f * _L1_damping * omega;
+
+
+    // calculate coordinate system at current location
+    struct Location _current_loc;
+
+    // Get current position and velocity
+    _ahrs.get_position(_current_loc);
+
+    // track velocity in earth frame
+    Vector3f _track_vel_ef;
+    _ahrs.get_velocity_NED(_track_vel_ef);
+
+    Vector3f pos_vec = location_diff_3d(sphere_center, _current_loc);
+
+    // normal vector of tangental plane at current location
+    Vector3f n_cl = - pos_vec.normalized();
+
+    // tangent vector of tangental plane at circle curve
+    Vector3f n_t = normal_vec % n_cl;
+    float chi = loiter_direction*asinf(n_t.length());
+    float chi_prime = asinf(circle_radius/sphere_radius);
+    n_t = n_t.normalized();
+
+    // tangent vector of tangetal plane normal to circle curve
+    Vector3f n_n = n_cl % n_t;
+    n_n = n_n.normalized();
+
+    // geodesic distance from the desired circle on the sphere
+    float g_dist = (chi - chi_prime)/(2*M_PI)*sphere_radius;
+
+    // velocity component perpendicular to and in the plane containing the desired circle
+    Vector3f v_perp = normal_vec * (_track_vel_ef * normal_vec);
+    Vector3f v_plane = _track_vel_ef + v_perp;
+
+    // normal vector in centripetal direction
+    Vector3f n_c = normal_vec % n_t;
+    n_c = n_c.normalized();
+
+    //velocity in tangetial direction
+    float v_t = v_plane * n_t;
+
+    // velocity component in centripetal direction
+    float v_c = v_plane * n_c;
+
+    float PD_accel = Kx * g_dist + Kv * v_c;
+
+    float spec_spring_const = 0.2/5.9;
+    float tether_tension = spec_spring_const * pos_vec.length();
+
+    // centripetal acceleration
+    float a_c = v_t * v_t / circle_radius;
+
+    // force equilibrium in (n_cl,n_n) plane
+
+
+    // euler angles of (n_cl, n_t, n_n) system in NED
+    float theta = -asinf(n_t.z);
+    //float psi = atan2f(n_t.y, n_t.x);
+    float phi = acosf(n_cl.z/cosf(theta));
+
+    // roll angle correction to ensure circular flight with specified radius
+    float delta_phi = atan2f(9.81f*n_n.z + a_c * cosf(chi) + PD_accel, tether_tension + 9.81f*n_cl.z + a_c * sinf(chi));
+
+
+    _target_bearing_cd = 100*degrees(phi+ delta_phi);
+
+
+
+    // Assumption: plane is moving in n_t direction
+    //
+
+}
+
+
+
 
 // update L1 control for heading hold navigation
 void AP_L1_Control::update_heading_hold(int32_t navigation_heading_cd)
