@@ -1073,9 +1073,9 @@ void Plane::do_winddrone()
     circ_on_sphere.normal_vec.y = 0;
     circ_on_sphere.normal_vec.z = -1;
 
-    circ_on_sphere.sphere_radius = 100.0;
+    circ_on_sphere.sphere_radius = 215;
 
-    circ_on_sphere.distance = 80;
+    circ_on_sphere.distance = 200;
 
     circ_on_sphere.sphere_center = home;
 

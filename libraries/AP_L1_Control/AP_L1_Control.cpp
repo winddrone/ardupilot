@@ -403,12 +403,6 @@ void AP_L1_Control::update_loiter(const struct Location &center_WP, float radius
 	f.close();
     _data_is_stale = false; // status are correctly updated with current waypoint data
 
-    hal.console->print("roll: ");
-    hal.console->print(_ahrs.roll_sensor/100 );
-    hal.console->print(", pitch");
-    hal.console->print(_ahrs.pitch_sensor/100 );
-    hal.console->print(", yaw: ");
-    hal.console->println(_ahrs.yaw_sensor/100 );
 }
 
 float AP_L1_Control::goto_loc_acc(const struct Location &center_WP, const struct Location &_current_loc, Vector2f _groundspeed_vector) {
