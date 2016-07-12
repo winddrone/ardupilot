@@ -580,8 +580,6 @@ void Plane::update_flight_mode(void)
         handle_auto_mode();
         break;
 
-    case LOITER_3D:
-    case EIGHT_SPHERE:
     case WINDDRONE:
         loiter3d_calc_nav_roll();
         loiter3d_calc_nav_pitch();
@@ -598,6 +596,8 @@ void Plane::update_flight_mode(void)
     case RTL:
     case LOITER:
     case EIGHT_PLANE:
+    case LOITER_3D:
+    case EIGHT_SPHERE:
         calc_nav_roll();
         calc_nav_pitch();
         calc_throttle();

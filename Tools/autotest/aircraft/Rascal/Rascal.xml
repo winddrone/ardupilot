@@ -538,32 +538,32 @@
 
 				</sum>
 				<value>0.5</value>
-			</pow>
-				<property>position/tether-strength</property>
+			</pow>	
+				<property>position/tether-strength</property>  
 			</product>
 			</function>
 			<location unit="IN">
 				<x>37.4</x>
 				<y>0</y>
 				<z>0</z>
-			</location>
-			<direction>
-				<x>
+			</location> 
+			<xdirection>				
 				<property>position/distance-from-start-lat-mt</property>
-				</x>
-				<y>
-				<property>position/distance-from-start-lng-mt</property>
-				</y>
-				<z>
-				<product>
+			<!--	<value>0</value>-->
+			</xdirection>
+			<ydirection>				
+				<property>position/distance-from-start-lon-mt</property>
+			<!--	<value>1</value>-->
+			</ydirection>
+			<zdirection>				
 				<property>position/distance-from-start-alt-mt</property>
-				<value>-1</value>
-				</product>
-				</z>
-			</direction>
+			<!--	<value>0</value>-->
+			</zdirection>
+
+
 		</force>
 
 	</external_reactions>
-    
+
 
 </fdm_config>

@@ -1185,7 +1185,7 @@ void AP_TECS::update_pitch_throttle_sphere(int32_t hgt_dem_cm,
 
 
         // Calculate specific energy demands
-        _SPE_dem = 0.5*_hgt_dem_adj*_hgt_dem_adj*0.2/5.9;
+        _SPE_dem = 0.5*_hgt_dem_adj*_hgt_dem_adj*0.2/5.9;//*4.44822;    // 4.44822 conversion from pounds to newton
         _SKE_dem = 0.5f * _TAS_dem_adj * _TAS_dem_adj;
 
         // Calculate specific energy rate demands
@@ -1193,11 +1193,11 @@ void AP_TECS::update_pitch_throttle_sphere(int32_t hgt_dem_cm,
         _SKEdot_dem = _TAS_state * _TAS_rate_dem;
 
         // Calculate specific energy
-        _SPE_est = 0.5*0.2/5.9*posned.length()*posned.length();
+        _SPE_est = 0.5*0.2/5.9*posned.length()*posned.length();//*4.44822;
         _SKE_est = 0.5f * _TAS_state * _TAS_state;
 
         // Calculate specific energy rate
-        _SPEdot = vel*posned * 0.2/5.9;
+        _SPEdot = vel*posned * 0.2/5.9;//*4.44822;
         _SKEdot = _TAS_state * _vel_dot;
 
     // Calculate throttle demand - use simple pitch to throttle if no airspeed sensor
@@ -1274,7 +1274,7 @@ void AP_TECS::update_pitch_throttle_sphere(int32_t hgt_dem_cm,
         // demand equal to the minimum value (which is )set by the mission plan during this mode). Otherwise the
         // integrator has to catch up before the nose can be raised to reduce speed during climbout.
         // During flare a different damping gain is used
-        float gainInv = (_TAS_state * timeConstant() * 0.2/5.9*posned.length());
+        float gainInv = (_TAS_state * timeConstant() * 0.2/5.9*posned.length());//*4.44822
         float temp = SEB_error + SEBdot_dem * timeConstant();
 
         float pitch_damp = _ptchDamp;

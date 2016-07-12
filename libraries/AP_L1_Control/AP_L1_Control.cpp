@@ -397,12 +397,12 @@ void AP_L1_Control::update_loiter(const struct Location &center_WP, float radius
         _nav_bearing = atan2f(-A_air_unit.y , -A_air_unit.x); // bearing (radians)from AC to L1 point
     }
 
-	fstream f;
+	/*fstream f;
 	f.open("loiter.txt", ios::out | ios::app);
 	f << A_air.x << " " << A_air.y << " " << center_WP.alt << " " << _current_loc.alt << " " << _ahrs.roll_sensor << " " << _ahrs.pitch_sensor << " " << _ahrs.yaw_sensor<< endl;
 	f.close();
     _data_is_stale = false; // status are correctly updated with current waypoint data
-
+	*/
 }
 
 float AP_L1_Control::goto_loc_acc(const struct Location &center_WP, const struct Location &_current_loc, Vector2f _groundspeed_vector) {
@@ -885,7 +885,7 @@ void AP_L1_Control::update_winddrone(Vector3f normal_vec, float sphere_radius, f
     Vector3f n_cl = - pos_vec.normalized();
 
     // tangent vector of tangental plane at circle curve
-    Vector3f n_t = normal_vec % n_cl;
+    Vector3f n_t = (normal_vec % n_cl);//*(-loiter_direction);
     float chi = loiter_direction*asinf(n_t.length());
     float chi_prime = asinf(circle_radius/sphere_radius);
     n_t = n_t.normalized();
@@ -913,8 +913,8 @@ void AP_L1_Control::update_winddrone(Vector3f normal_vec, float sphere_radius, f
 
     float PD_accel = Kx * g_dist + Kv * v_c;
 
-    float spec_spring_const = 0.2/5.9;
-    float tether_tension = spec_spring_const * pos_vec.length();
+    float spec_spring_const = 0.2;//5.9;
+    float tether_tension = spec_spring_const * pos_vec.length();//*4.44822;     //4.44822 conversion from pounds to newton
 
     // centripetal acceleration
     float a_c = v_t * v_t / circle_radius;
@@ -930,14 +930,30 @@ void AP_L1_Control::update_winddrone(Vector3f normal_vec, float sphere_radius, f
     // roll angle correction to ensure circular flight with specified radius
     float delta_phi = atan2f(9.81f*n_n.z + a_c * cosf(chi) + PD_accel, tether_tension + 9.81f*n_cl.z + a_c * sinf(chi));
 
+    float tether_angle = acosf(-pos_vec.z/pos_vec.length());
+    float roll = atan2f(a_c - tether_tension*sinf(tether_angle) + PD_accel, 9.81f + tether_tension*cosf(tether_angle));
 
-    _target_bearing_cd = 100*degrees(phi+ delta_phi);
+    _target_bearing_cd = 100*degrees(roll);
+    hal.console->print("v_c: ");
+    hal.console->println(v_c);
+    hal.console->print("PDaccel: ");
+    hal.console->println(PD_accel);
+    hal.console->print("gdist: ");
+    hal.console->println(g_dist);
+
+
 
 
 
     // Assumption: plane is moving in n_t direction
     //
 
+/*    fstream f;
+    uint32_t now = AP_HAL::micros();
+    f.open("GPS.txt", ios::out | ios::app);
+    f << now << " " << pos_vec.x << " " << pos_vec.y << " " << pos_vec.z << " " << _ahrs.roll_sensor << " " << _ahrs.pitch_sensor << " " << _ahrs.yaw_sensor
+    		<< " " << n_t.x << " " << n_t.y << " " << n_t.z << " " << _target_bearing_cd << " " << theta << endl;
+    f.close();*/
 }
 
 

@@ -1081,6 +1081,7 @@ void Plane::do_winddrone()
 
     circ_on_sphere.circle_radius = sqrtf(circ_on_sphere.sphere_radius*circ_on_sphere.sphere_radius - circ_on_sphere.distance*circ_on_sphere.distance);
 
+    loiter.direction = 1;
 
 }
 
