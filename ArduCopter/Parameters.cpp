@@ -750,7 +750,7 @@ const AP_Param::Info Copter::var_info[] = {
     GOBJECT(attitude_control, "ATC_", AC_AttitudeControl_Heli),
 #else
     // @Group: ATC_
-    // @Path: ../libraries/AC_AttitudeControl/AC_AttitudeControl_Multi.cpp
+    // @Path: ../libraries/AC_AttitudeControl/AC_AttitudeControl.cpp,../libraries/AC_AttitudeControl/AC_AttitudeControl_Multi.cpp
     GOBJECT(attitude_control, "ATC_", AC_AttitudeControl_Multi),
 #endif
 
@@ -825,6 +825,10 @@ const AP_Param::Info Copter::var_info[] = {
     GOBJECT(fence,      "FENCE_",   AC_Fence),
 #endif
 
+    // @Group: AVOID_
+    // @Path: ../libraries/AC_Avoidance/AC_Avoid.cpp
+    GOBJECT(avoid,      "AVOID_",   AC_Avoid),
+
 #if AC_RALLY == ENABLED
     // @Group: RALLY_
     // @Path: ../libraries/AP_Rally/AP_Rally.cpp
@@ -837,18 +841,12 @@ const AP_Param::Info Copter::var_info[] = {
     GOBJECT(motors, "H_",           AP_MotorsHeli_Single),
 
 #elif FRAME_CONFIG == SINGLE_FRAME
-    // @Group: MOT_
-    // @Path: ../libraries/AP_Motors/AP_MotorsSingle.cpp
     GOBJECT(motors, "MOT_",           AP_MotorsSingle),
 
 #elif FRAME_CONFIG == COAX_FRAME
-    // @Group: MOT_
-    // @Path: ../libraries/AP_Motors/AP_MotorsCoax.cpp
     GOBJECT(motors, "MOT_",           AP_MotorsCoax),
 
 #elif FRAME_CONFIG == TRI_FRAME
-    // @Group: MOT_
-    // @Path: ../libraries/AP_Motors/AP_MotorsTri.cpp
     GOBJECT(motors, "MOT_",           AP_MotorsTri),
 
 #else
@@ -949,8 +947,29 @@ const AP_Param::Info Copter::var_info[] = {
     // @User: Standard
     GSCALAR(terrain_follow, "TERRAIN_FOLLOW", 0),
 
+    // @Group: 
+    // @Path: Parameters.cpp
+    GOBJECT(g2, "",  ParametersG2),
+    
     AP_VAREND
 };
+
+/*
+  2nd group of parameters
+ */
+const AP_Param::GroupInfo ParametersG2::var_info[] = {
+
+    // @Param: TKOFF_NAV_ALT
+    // @DisplayName: Takeoff navigation altitude
+    // @Description: This is the altitude in meters above the takeoff point that attitude changes for navigation can begin
+    // @Range: 0 5
+    // @User: Standard
+    AP_GROUPINFO("WP_TKOFF_NAV_ALT", 1, ParametersG2, takeoff_nav_alt, 0),
+
+    AP_GROUPEND
+};
+
+
 
 /*
   This is a conversion table from old parameter values to new

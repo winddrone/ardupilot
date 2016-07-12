@@ -164,7 +164,7 @@ void Plane::ahrs_update()
     }
 
     // calculate a scaled roll limit based on current pitch
-    roll_limit_cd = g.roll_limit_cd * cosf(ahrs.pitch);
+    roll_limit_cd = aparm.roll_limit_cd * cosf(ahrs.pitch);
     pitch_limit_min_cd = aparm.pitch_limit_min_cd * fabsf(cosf(ahrs.roll));
 
     // updated the summed gyro used for ground steering and
@@ -491,6 +491,9 @@ void Plane::update_GPS_10Hz(void)
 
         // update wind estimate
         ahrs.estimate_wind();
+    } else if (gps.status() < AP_GPS::GPS_OK_FIX_3D && ground_start_count != 0) {
+        // lost 3D fix, start again
+        ground_start_count = 5;
     }
 
     calc_gndspeed_undershoot();
