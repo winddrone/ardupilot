@@ -76,6 +76,7 @@
 #include <AC_WPNav/AC_Circle.h>          // circle navigation library
 #include <AP_Declination/AP_Declination.h>     // ArduPilot Mega Declination Helper Library
 #include <AC_Fence/AC_Fence.h>           // Arducopter Fence library
+#include <AC_Avoidance/AC_Avoid.h>           // Arducopter stop at fence library
 #include <AP_Scheduler/AP_Scheduler.h>       // main loop scheduler
 #include <AP_RCMapper/AP_RCMapper.h>        // RC input mapping library
 #include <AP_Notify/AP_Notify.h>          // Notify library
@@ -139,6 +140,7 @@ private:
 
     // Global parameters are all contained within the 'g' class.
     Parameters g;
+    ParametersG2 g2;
 
     // main loop scheduler
     AP_Scheduler scheduler;
@@ -268,6 +270,11 @@ private:
         uint32_t start_ms;
     } takeoff_state;
 
+    uint32_t precland_last_update_ms;
+
+    // altitude below which we do no navigation in auto takeoff
+    float auto_takeoff_no_nav_alt_cm;
+    
     RCMapper rcmap;
 
     // board specific config
@@ -458,6 +465,7 @@ private:
     AC_AttitudeControl_Multi attitude_control;
 #endif
     AC_PosControl pos_control;
+    AC_Avoid avoid;
     AC_WPNav wp_nav;
     AC_Circle circle_nav;
 
@@ -564,6 +572,8 @@ private:
         uint8_t dynamic_flight          : 1;    // 0   // true if we are moving at a significant speed (used to turn on/off leaky I terms)
         uint8_t init_targets_on_arming  : 1;    // 1   // true if we have been disarmed, and need to reset rate controller targets when we arm
     } heli_flags;
+
+    int16_t hover_roll_trim_scalar_slew;
 #endif
 
 #if GNDEFFECT_COMPENSATION == ENABLED
@@ -627,6 +637,8 @@ private:
     float get_takeoff_trigger_throttle();
     float get_throttle_pre_takeoff(float input_thr);
     float get_surface_tracking_climb_rate(int16_t target_rate, float current_alt_target, float dt);
+    void auto_takeoff_set_start_alt(void);
+    void auto_takeoff_attitude_run(float target_yaw_rate);
     void set_accel_throttle_I_from_pilot_throttle(float pilot_throttle);
     void update_poscon_alt_max();
     void rotate_body_frame_to_NE(float &x, float &y);
@@ -663,7 +675,6 @@ private:
     void Log_Write_Performance();
     void Log_Write_Attitude();
     void Log_Write_MotBatt();
-    void Log_Write_Startup();
     void Log_Write_Event(uint8_t id);
     void Log_Write_Data(uint8_t id, int32_t value);
     void Log_Write_Data(uint8_t id, uint32_t value);
@@ -910,6 +921,7 @@ private:
     void pre_arm_rc_checks();
     bool pre_arm_gps_checks(bool display_failure);
     bool pre_arm_ekf_attitude_check();
+    bool pre_arm_rallypoint_check();
     bool pre_arm_terrain_check(bool display_failure);
     bool arm_checks(bool display_failure, bool arming_from_gcs);
     void init_disarm_motors();

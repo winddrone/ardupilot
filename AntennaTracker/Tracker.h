@@ -46,7 +46,7 @@
 #include <AP_SerialManager/AP_SerialManager.h>   // Serial manager library
 #include <AP_Declination/AP_Declination.h> // ArduPilot Mega Declination Helper Library
 #include <DataFlash/DataFlash.h>
-#include <PID/PID.h>
+#include <AC_PID/AC_PID.h>
 #include <AP_Scheduler/AP_Scheduler.h>       // main loop scheduler
 #include <AP_NavEKF/AP_NavEKF.h>
 #include <AP_NavEKF2/AP_NavEKF2.h>
@@ -150,6 +150,7 @@ private:
         uint32_t last_update_us;    // last position update in microseconds
         uint32_t last_update_ms;    // last position update in milliseconds
         Vector3f vel;           // the vehicle's velocity in m/s
+        int32_t relative_alt;	// the vehicle's relative altitude in meters * 100
     } vehicle;
 
     // Navigation controller state
@@ -166,14 +167,6 @@ private:
         bool scan_reverse_pitch         : 1;// controls direction of pitch movement in SCAN mode
         bool scan_reverse_yaw           : 1;// controls direction of yaw movement in SCAN mode
     } nav_status = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, false, true, false, false};
-
-    // Servo state
-    struct {
-        bool yaw_lower      : 1;    // true if yaw servo has been limited from moving to a lower position (i.e. position or rate limited)
-        bool yaw_upper      : 1;    // true if yaw servo has been limited from moving to a higher position (i.e. position or rate limited)
-        bool pitch_lower    : 1;    // true if pitch servo has been limited from moving to a lower position (i.e. position or rate limited)
-        bool pitch_upper    : 1;    // true if pitch servo has been limited from moving to a higher position (i.e. position or rate limited)
-    } servo_limit = {true, true, true, true};
 
     // setup the var_info table
     AP_Param param_loader{var_info};

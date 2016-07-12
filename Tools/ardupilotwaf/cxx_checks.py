@@ -124,8 +124,15 @@ def ap_common_checks(cfg):
         mandatory=False,
     )
 
+    cfg.check(header_name='endian.h', mandatory=False)
+
+    cfg.check(header_name='byteswap.h', mandatory=False)
+
 @conf
 def check_librt(cfg, env):
+    if cfg.env.DEST_OS == 'darwin':
+        return True
+
     ret = cfg.check(
         compiler='cxx',
         fragment='''
@@ -151,6 +158,10 @@ def check_librt(cfg, env):
 
 @conf
 def check_lttng(cfg, env):
+    if cfg.options.disable_lttng:
+        cfg.msg("Checking for 'lttng-ust':", 'disabled', color='YELLOW')
+        return False
+
     cfg.check_cfg(package='lttng-ust', mandatory=False, global_define=True,
                   args=['--libs', '--cflags'])
     env.LIB += cfg.env['LIB_LTTNG-UST']
@@ -158,6 +169,10 @@ def check_lttng(cfg, env):
 
 @conf
 def check_libiio(cfg, env):
+    if cfg.options.disable_libiio:
+        cfg.msg("Checking for 'libiio':", 'disabled', color='YELLOW')
+        return False
+
     cfg.check_cfg(package='libiio', mandatory=False, global_define=True,
                   args=['--libs', '--cflags'])
     env.LIB += cfg.env['LIB_LIBIIO']
