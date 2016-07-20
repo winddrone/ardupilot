@@ -85,7 +85,7 @@ public:
 
 	virtual void update_loiter_3d(const struct Location &center_WP, float radius, float psi, float theta, float w, float sigma, int32_t dist, int8_t loiter_direction, Matrix3f M_pe, int8_t segment, int32_t &height) = 0;
 
-	virtual void update_winddrone(Vector3f normal_vec, float sphere_radius, float circle_radius, struct Location sphere_center, float distance, int8_t loiter_direction) = 0;
+	virtual void update_winddrone(Vector3f normal_vec, float sphere_radius, float circle_radius, struct Location sphere_center, float distance, float spring_const, int8_t loiter_direction) = 0;
 
 	// update the internal state of the navigation controller, given a
 	// fixed heading. This is the step function for navigation control

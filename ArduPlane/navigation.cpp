@@ -310,7 +310,7 @@ void Plane::update_eight_sphere()
 
 void Plane::update_winddrone()
 {
-    nav_controller->update_winddrone(circ_on_sphere.normal_vec, circ_on_sphere.sphere_radius, circ_on_sphere.circle_radius, circ_on_sphere.sphere_center, circ_on_sphere.distance, loiter.direction);
+    nav_controller->update_winddrone(circ_on_sphere.normal_vec, circ_on_sphere.sphere_radius, circ_on_sphere.circle_radius, circ_on_sphere.sphere_center, circ_on_sphere.distance, circ_on_sphere.spring_const, loiter.direction);
 }
 
 /*

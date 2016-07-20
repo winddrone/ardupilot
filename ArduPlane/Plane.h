@@ -769,6 +769,8 @@ private:
 
         float circle_radius;
 
+        float spring_const;
+
 
     } circ_on_sphere;
 

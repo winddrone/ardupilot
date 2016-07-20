@@ -919,13 +919,13 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
 
 }
 
-void AP_L1_Control::update_winddrone(Vector3f normal_vec, float sphere_radius, float circle_radius, struct Location sphere_center, float distance, int8_t loiter_direction)
+void AP_L1_Control::update_winddrone(Vector3f normal_vec, float sphere_radius, float circle_radius, struct Location sphere_center, float distance, float spring_const, int8_t loiter_direction)
 {
 
     // Calculate guidance gains used by PD loop (used during circle tracking)
     float omega = (6.2832f / _L1_period);
     float Kx = omega * omega;
-    float Kv = 2.0f * _L1_damping * omega;
+    float Kv = -2.0f * _L1_damping * omega;
 
 
     // calculate coordinate system at current location
@@ -944,21 +944,21 @@ void AP_L1_Control::update_winddrone(Vector3f normal_vec, float sphere_radius, f
     Vector3f n_cl = - pos_vec.normalized();
 
     // tangent vector of tangental plane at circle curve
-    Vector3f n_t = (normal_vec % n_cl);//*(-loiter_direction);
-    float chi = loiter_direction*asinf(n_t.length());
+    Vector3f n_t =  n_cl % normal_vec;
+    float chi = asinf(n_t.length());
     float chi_prime = asinf(circle_radius/sphere_radius);
     n_t = n_t.normalized();
 
-    // tangent vector of tangetal plane normal to circle curve
+    // normal vector of tangetal plane of the sphere
     Vector3f n_n = n_cl % n_t;
     n_n = n_n.normalized();
 
     // geodesic distance from the desired circle on the sphere
-    float g_dist = (chi - chi_prime)/(2*M_PI)*sphere_radius;
+    float g_dist = loiter_direction*(chi - chi_prime)/(2*M_PI)*sphere_radius;
 
     // velocity component perpendicular to and in the plane containing the desired circle
     Vector3f v_perp = normal_vec * (_track_vel_ef * normal_vec);
-    Vector3f v_plane = _track_vel_ef + v_perp;
+    Vector3f v_plane = _track_vel_ef - v_perp;
 
     // normal vector in centripetal direction
     Vector3f n_c = normal_vec % n_t;
@@ -970,51 +970,130 @@ void AP_L1_Control::update_winddrone(Vector3f normal_vec, float sphere_radius, f
     // velocity component in centripetal direction
     float v_c = v_plane * n_c;
 
-    float PD_accel = Kx * g_dist + Kv * v_c;
+    /*hal.console->print("vt: ");
+    hal.console->println(v_t);
+    hal.console->print("vc: ");
+    hal.console->println(v_c);
+    hal.console->print("v: ");
+    hal.console->println(_track_vel_ef.length());*/
 
-    float spec_spring_const = 0.2/5.9;
-    float tether_tension = spec_spring_const * pos_vec.length()*4.44822;     //4.44822 conversion from pounds to newton
+ /*   if((AP_HAL::micros() - timer) > 1000) {
+
+    Matrix3f body_to_NED;                       // orientation matrix body in NED system
+    Matrix3f local_CS_to_NED(n_t, n_n, n_cl);   // orientation matrix local CS in NED system
+    Matrix3f body_to_local_CS;                  // orientation matrix body in local CS
+
+    body_to_NED = _ahrs.get_rotation_body_to_ned();
+    //_ahrs.getRotationBodyToNED(body_to_NED);
+    body_to_local_CS = body_to_NED.transposed()*local_CS_to_NED;
+
+
+  /*  hal.console->println("new matrix");
+    hal.console->print(local_CS_to_NED.a.x);
+    hal.console->print(", ");
+    hal.console->print(local_CS_to_NED.a.y);
+    hal.console->print(", ");
+    hal.console->println(local_CS_to_NED.a.z);
+    hal.console->print(local_CS_to_NED.b.x);
+    hal.console->print(", ");
+    hal.console->print(local_CS_to_NED.b.y);
+    hal.console->print(", ");
+    hal.console->println(local_CS_to_NED.b.z);
+    hal.console->print(local_CS_to_NED.c.x);
+    hal.console->print(", ");
+    hal.console->print(local_CS_to_NED.c.y);
+    hal.console->print(", ");
+    hal.console->println(local_CS_to_NED.c.z); */
+
+ /*  fstream f;
+    uint32_t now = AP_HAL::micros();
+    f.open("matrix.txt", ios::out | ios::app);
+    f << "new matrix" << " \n"<< body_to_local_CS.a.x << " "<< body_to_local_CS.a.y  << " " << body_to_local_CS.a.z
+      << " \n" << body_to_local_CS.b.x << " " << body_to_local_CS.b.y << " " << body_to_local_CS.b.z << " \n"
+      << body_to_local_CS.c.x << " " << body_to_local_CS.c.y << " " << body_to_local_CS.c.z << endl;
+    f.close();
+    }
+    /*if((AP_HAL::millis() - timer) > 1030) {
+
+        Matrix3f body_to_NED;                       // orientation matrix body in NED system
+        Matrix3f local_CS_to_NED(n_t, n_n, n_cl);   // orientation matrix local CS in NED system
+        Matrix3f body_to_local_CS;                  // orientation matrix body in local CS
+
+        body_to_NED = _ahrs.get_rotation_body_to_ned();
+        //_ahrs.getRotationBodyToNED(body_to_NED);
+        body_to_local_CS = body_to_NED.transposed()*local_CS_to_NED;
+
+
+
+        hal.console->print(local_CS_to_NED.b.x);
+        hal.console->print(", ");
+        hal.console->print(local_CS_to_NED.b.y);
+        hal.console->print(", ");
+        hal.console->println(local_CS_to_NED.b.z);
+
+    }
+    if((AP_HAL::millis() - timer) > 1060) {
+        timer = AP_HAL::millis();
+
+        Matrix3f body_to_NED;                       // orientation matrix body in NED system
+        Matrix3f local_CS_to_NED(n_t, n_n, n_cl);   // orientation matrix local CS in NED system
+        Matrix3f body_to_local_CS;                  // orientation matrix body in local CS
+
+        body_to_NED = _ahrs.get_rotation_body_to_ned();
+        //_ahrs.getRotationBodyToNED(body_to_NED);
+        body_to_local_CS = body_to_NED.transposed()*local_CS_to_NED;
+
+
+        hal.console->print(local_CS_to_NED.c.x);
+        hal.console->print(", ");
+        hal.console->print(local_CS_to_NED.c.y);
+        hal.console->print(", ");
+        hal.console->println(local_CS_to_NED.c.z);
+
+    }*/
+    float PD_accel = Kx * g_dist + Kv * v_c;
+    float spec_spring_const = spring_const/5.9;
+    float tether_tension = spec_spring_const * pos_vec.length();
+    if (pos_vec.length() < 100) tether_tension = 0;
+
 
     // centripetal acceleration
     float a_c = v_t * v_t / circle_radius;
 
     // force equilibrium in (n_cl,n_n) plane
-
+    float winkel = acosf(-pos_vec.z/pos_vec.length());
+    float a_tether_par = tether_tension*sinf(winkel);
+    float a_tether_perp = tether_tension*cosf(winkel);
 
     // euler angles of (n_cl, n_t, n_n) system in NED
     float theta = -asinf(n_t.z);
     //float psi = atan2f(n_t.y, n_t.x);
-    float phi = acosf(n_cl.z/cosf(theta));
+    float phi = -acosf(n_cl.z/cosf(theta));
+    //float phi = -acosf(_ahrs.roll/cosf(theta));
 
-    // roll angle correction to ensure circular flight with specified radius
-    float delta_phi = atan2f(9.81f*n_n.z + a_c * cosf(chi) + PD_accel, tether_tension + 9.81f*n_cl.z + a_c * sinf(chi));
+    //roll angle correction to ensure circular flight with specified radius
+    float delta_phi = atan2f(-9.81f*n_n.z + a_c * cosf(chi) + PD_accel, tether_tension + 9.81f*n_cl.z + a_c * sinf(chi));
+    //float roll = atan2f(a_c - a_tether_par + PD_accel, 9.81 + a_tether_perp);
 
-    float tether_angle = acosf(-pos_vec.z/pos_vec.length());
-    float roll = atan2f(a_c - tether_tension*sinf(tether_angle) + PD_accel, 9.81f + tether_tension*cosf(tether_angle));
-
-    _target_bearing_cd = 100*degrees(roll);
-    hal.console->print("length: ");
-    hal.console->println(pos_vec.length());
-   /* hal.console->print("PDaccel: ");
-    hal.console->println(PD_accel);
-    hal.console->print("gdist: ");
-    hal.console->println(g_dist);*/
+    _target_bearing_cd = 100*degrees(phi + delta_phi);
 
 
-
-
+    //hal.console->print(tether_tension);
+  /*  hal.console->println(degrees(winkel));
+    hal.console->print("a_tether_perp: ");
+    hal.console->println(a_tether_perp);
+    hal.console->print("vc: ");
+    hal.console->println(v_c);
+*/
 
     // Assumption: plane is moving in n_t direction
     //
 
-  /*  fstream f;
+    /*fstream f;
     uint32_t now = AP_HAL::micros();
-    f.open("GPS.txt", ios::out | ios::app);
-    f << now << " " << pos_vec.x << " " << pos_vec.y << " " << pos_vec.z << " " << _ahrs.roll_sensor << " " << _ahrs.pitch_sensor << " " << _ahrs.yaw_sensor
-    		<< " " << n_t.x << " " << n_t.y << " " << n_t.z << " " << roll << " " << theta << endl;
+    f.open("Force10_raw.txt", ios::out | ios::app);
+    f << now << "  "<< pos_vec.x << " "<< pos_vec.y  << " " << pos_vec.z <<  endl;
     f.close();*/
-
-
 
 }
 

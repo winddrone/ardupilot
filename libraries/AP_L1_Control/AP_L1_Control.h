@@ -52,7 +52,7 @@ public:
 	float loiter_loc_acc(const struct Location &center_WP, float radius, const struct Location &_current_loc, Vector2f groundspeed_vector);
 	void update_eight_plane(const struct Location &center_WP, float radius, Vector2f axis, float axis_proj, float v_axis, const struct Location &first_turn, const struct Location &second_turn, const struct Location &ta_loc, const struct Location &tb_loc, int8_t &branch, int8_t &branch_turn1, int8_t loiter_direction);
 	void update_loiter_3d(const struct Location &center_WP, float radius, float psi, float theta, float w, float sigma, int32_t dist, int8_t loiter_direction, Matrix3f M_pe, int8_t segment, int32_t &height);
-	void update_winddrone(Vector3f normal_vec, float sphere_radius, float circle_radius, struct Location sphere_center, float distance, int8_t loiter_direction);
+	void update_winddrone(Vector3f normal_vec, float sphere_radius, float circle_radius, struct Location sphere_center, float distance, float spring_const, int8_t loiter_direction);
 	void update_heading_hold(int32_t navigation_heading_cd);
 	void update_level_flight(void);
 	bool reached_loiter_target(void);

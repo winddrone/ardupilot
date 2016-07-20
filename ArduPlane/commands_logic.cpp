@@ -1100,19 +1100,23 @@ void Plane::do_eight_sphere()
 void Plane::do_winddrone()
 {
 
-    circ_on_sphere.normal_vec.x = 0;
-    circ_on_sphere.normal_vec.y = 0;
-    circ_on_sphere.normal_vec.z = -1;
+	circ_on_sphere.normal_vec.x = 0;
+	circ_on_sphere.normal_vec.y = 0;
+	circ_on_sphere.normal_vec.z = 1;
 
-    circ_on_sphere.sphere_radius = 215;
+	circ_on_sphere.sphere_radius = 125.0;
 
-    circ_on_sphere.distance = 200;
+	circ_on_sphere.distance = 100;
 
-    circ_on_sphere.sphere_center = home;
+	circ_on_sphere.sphere_center = home;
 
-    circ_on_sphere.circle_radius = sqrtf(circ_on_sphere.sphere_radius*circ_on_sphere.sphere_radius - circ_on_sphere.distance*circ_on_sphere.distance);
+	circ_on_sphere.circle_radius = sqrtf(circ_on_sphere.sphere_radius*circ_on_sphere.sphere_radius - circ_on_sphere.distance*circ_on_sphere.distance);
 
-    loiter.direction = 1;
+	circ_on_sphere.spring_const = 0;    //4.44822 transforms pound-force to newton
+	next_WP_loc = home;
+	next_WP_loc.alt = home.alt + 100*circ_on_sphere.distance;
+
+	loiter.direction = 1;
 
 }
 
