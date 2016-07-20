@@ -731,8 +731,8 @@ private:
 
     struct {
 
-        float psi;              // rotation around e_z
-        float theta;            // rotation around e_y
+        float omega;              // rotation of eight around e_z in ef, omega equals winddirection
+        float sigma;                // rotation of eight around e_y'
 
         float cross_angle;       // half angle of crossing path
         float arc_length_angle;
@@ -744,6 +744,8 @@ private:
         float sector_angle;     // 2*sector_angle + pi = sector of circle
 
         Vector3f normal_vec;    // Unitvector to circle center
+        //Matrix3f rot_8_matrix;  // rotates (active) the whole eight around omega and eta
+
         Matrix3f rot_matrix_right; // describes an earth frame vector in the plane frame of right turning circles
         Matrix3f rot_matrix_left;
         Matrix3f rot_matrix_cross1;

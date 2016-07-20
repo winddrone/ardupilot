@@ -296,7 +296,7 @@ void AP_L1_Control::update_loiter(const struct Location &center_WP, float radius
 
     // scale loiter radius with square of EAS2TAS to allow us to stay
     // stable at high altitude
-    radius *= sq(_ahrs.get_EAS2TAS());
+    //radius *= sq(_ahrs.get_EAS2TAS());
 
     // Calculate guidance gains used by PD loop (used during circle tracking)
     float omega = (6.2832f / _L1_period);
@@ -374,7 +374,8 @@ void AP_L1_Control::update_loiter(const struct Location &center_WP, float radius
     _crosstrack_error = xtrackErrCirc;
 
     //Calculate PD control correction to circle waypoint_ahrs.roll
-    float latAccDemCircPD = (xtrackErrCirc * Kx + xtrackVelCirc * Kv);
+    float latAccDemCircPD = (xtrackErrCirc * Kx + xtrackVelCirc * Kv);  //original
+    //float latAccDemCircPD = (xtrackErrCirc * Kx + xtrackVelCirc * Kv - Kx*11.9);	//my change
 
     //Calculate tangential velocity
     float velTangent = xtrackVelCap * float(loiter_direction);
@@ -385,7 +386,8 @@ void AP_L1_Control::update_loiter(const struct Location &center_WP, float radius
     }
 
     // Calculate centripetal acceleration demand
-    float latAccDemCircCtr = velTangent * velTangent / MAX((0.5f * radius), (radius + xtrackErrCirc));
+    //float latAccDemCircCtr = velTangent * velTangent / MAX((0.5f * radius), (radius + xtrackErrCirc)); //original
+    float latAccDemCircCtr = velTangent * velTangent / radius;   //my change
 
     //Sum PD control and centripetal acceleration to calculate lateral manoeuvre demand
     float latAccDemCirc = loiter_direction * (latAccDemCircPD + latAccDemCircCtr);
@@ -405,12 +407,27 @@ void AP_L1_Control::update_loiter(const struct Location &center_WP, float radius
         _nav_bearing = atan2f(-A_air_unit.y , -A_air_unit.x); // bearing (radians)from AC to L1 point
     }
 
+    hal.console->print("latAccDemCircPD: ");
+    hal.console->println(latAccDemCircPD);
+    hal.console->print("velError: ");
+    hal.console->println(xtrackVelCirc);
+    hal.console->print("xError: ");
+    hal.console->println(xtrackErrCirc);
+    hal.console->print("_latAccDem: ");
+    hal.console->println(_latAccDem);
 	/*fstream f;
 	f.open("loiter.txt", ios::out | ios::app);
 	f << A_air.x << " " << A_air.y << " " << center_WP.alt << " " << _current_loc.alt << " " << _ahrs.roll_sensor << " " << _ahrs.pitch_sensor << " " << _ahrs.yaw_sensor<< endl;
 	f.close();
     _data_is_stale = false; // status are correctly updated with current waypoint data
 	*/
+
+    /*fstream f;
+    uint32_t now = AP_HAL::micros();
+    f.open("GPS.txt", ios::out | ios::app);
+    f << now << " " << A_air.x << " " << A_air.y << " " << _current_loc.alt << " " << _ahrs.roll_sensor << " " << _ahrs.pitch_sensor << " " << _ahrs.yaw_sensor
+    		 << _latAccDem << endl;
+    f.close();*/
 }
 
 float AP_L1_Control::goto_loc_acc(const struct Location &center_WP, const struct Location &_current_loc, Vector2f _groundspeed_vector) {
@@ -611,14 +628,23 @@ void AP_L1_Control::update_eight_plane(const struct Location &center_WP, float r
      */
 }
 
-void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float radius, float slope, float orientation, int32_t dist, int8_t loiter_direction, Matrix3f M_pe, int32_t &height)
+void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float radius, float psi, float theta, float w, float sigma, int32_t dist, int8_t loiter_direction, Matrix3f M_pe, int8_t segment, int32_t &height)
 {
     struct Location _current_loc;
 
-    float cos_slope = cosf(slope);
-    float sin_slope = sinf(slope);
-    float cos_orient = cosf(orientation);
-    float sin_orient = sinf(orientation);
+    //float cos_slope = cosf(slope);
+    //float sin_slope = sinf(slope);
+    //float cos_orient = cosf(orientation);
+    //float sin_orient = sinf(orientation);
+
+    float cos_theta = cosf(theta);
+    float sin_theta = sinf(theta);
+    float cos_psi = cosf(psi);
+    float sin_psi = sinf(psi);
+    float cos_w = cosf(w);
+    float sin_w = sinf(w);
+    float cos_sigma = cosf(sigma);
+    float sin_sigma = sinf(sigma);
 
     // Calculate guidance gains used by PD loop (used during circle tracking)
     float omega = (6.2832f / _L1_period);
@@ -748,12 +774,17 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
     //Calculate lat accln demand to capture center_WP (use L1 guidance law)
     float latAccDemCap = K_L1 * groundSpeed * groundSpeed / _L1_dist * sinf(Nu);
 
+
     //Calculate radial position and velocity errors
     //float xtrackVelCirc = -ltrackVelCap; // Radial outbound velocity - reuse previous radial inbound velocity
     //float xtrackErrCirc = A_air.length() - radius; // Radial distance from the loiter circle
     //float xtrackErrCirc = A_air_ef_2d.length() - radius*cos_slope/sqrtf(1-sin_slope*sin_slope*sin_bearing*sin_bearing);    // distance from circle projection (ellipse)
-    float v_unit_ef_x = loiter_direction*(-cos_slope*cos_orient*A_air_unit.y - sin_orient*A_air_unit.x);
-    float v_unit_ef_y = loiter_direction*(-cos_slope*sin_orient*A_air_unit.y + cos_orient*A_air_unit.x);
+    //float v_unit_ef_x = loiter_direction*(-cos_slope*cos_orient*A_air_unit.y - sin_orient*A_air_unit.x); //M_ep * tangentialvector
+    //float v_unit_ef_y = loiter_direction*(-cos_slope*sin_orient*A_air_unit.y + cos_orient*A_air_unit.x);
+    float v_unit_ef_x = loiter_direction*(- A_air_unit.y*(cos_w*cos_sigma*cos_theta*cos_psi + sin_w*cos_theta*sin_psi + cos_w*sin_sigma*sin_theta)
+    									  + A_air_unit.x*(-cos_w*cos_sigma*sin_psi + sin_w*cos_psi));   //M_ep * tangent vector
+	float v_unit_ef_y = loiter_direction*(- A_air_unit.y*(-sin_w*cos_sigma*cos_theta*cos_psi + cos_w*cos_theta*sin_psi - sin_w*sin_sigma*sin_theta)
+										  + A_air_unit.x*(sin_w*cos_sigma*sin_psi + cos_w*cos_psi));
     float chi = atan2f(v_unit_ef_y, v_unit_ef_x);
     float sin_chi = sinf(chi);
     float cos_chi = cosf(chi);
@@ -761,19 +792,35 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
     radius_vec_pf.x = radius * A_air_unit.x;
     radius_vec_pf.y = radius * A_air_unit.y;
     radius_vec_pf.z = 0;
-    float delta_height = dist/100.0f * cos_slope - A_air_ef.z + Height_ef.z;
+    float delta_height = dist/100.0f * cos_sigma*cos_theta - A_air_ef.z + Height_ef.z;  // cos_sigma*cos_theta = z component of normal_vec
     Vector3f A_air_diff_pf = A_air_pf - radius_vec_pf;
+
     float xtrackVelCirc = - sin_chi*_track_vel_ef.x + cos_chi*_track_vel_ef.y; // y Komponente von _track_vel_ef im bahnfesten Koordinatensystem
     //float xtrackVelCirc = -ltrackVelCap * cos_slope; // projection to xy plane of radial outbound velocity - reuse previous radial inbound velocity
-    int8_t sign;
-    if((-sin_chi*cos_slope*cos_orient + cos_chi*cos_slope*sin_orient)*A_air_diff_pf.x +(sin_chi*sin_orient+cos_chi*cos_orient)*A_air_diff_pf.y +(-sin_chi*sin_slope*cos_orient+cos_chi*sin_slope*sin_orient)*A_air_diff_pf.z < 0) sign = -1;
-    else sign = 1;
+    int8_t sign; // are we outside or inside the circle
+    //if((-sin_chi*cos_slope*cos_orient + cos_chi*cos_slope*sin_orient)*A_air_diff_pf.x +(sin_chi*sin_orient+cos_chi*cos_orient)*A_air_diff_pf.y +(-sin_chi*sin_slope*cos_orient+cos_chi*sin_slope*sin_orient)*A_air_diff_pf.z < 0) sign = -1;  //y componet of a_air_diff_kf
+    if (-sin_chi*(A_air_diff_pf.x * (cos_w*cos_sigma*cos_theta*cos_psi + sin_w*cos_theta*sin_psi + cos_w*sin_sigma*sin_theta)
+    			+ A_air_diff_pf.y * (-cos_w*cos_sigma*sin_psi + sin_w*cos_psi)
+				+ A_air_diff_pf.z * (cos_w*cos_sigma*sin_theta*cos_psi + sin_w*sin_theta*sin_psi - cos_w*sin_sigma*cos_theta))
+
+    	+cos_chi*(A_air_diff_pf.x * (-sin_w*cos_sigma*cos_theta*cos_psi + cos_w*cos_theta*sin_psi - sin_w*sin_sigma*sin_theta)
+    			+ A_air_diff_pf.y * (sin_w*cos_sigma*sin_psi + cos_w*cos_psi)
+				+ A_air_diff_pf.z * (-sin_w*cos_sigma*sin_theta*cos_psi + cos_w*sin_theta*sin_psi + sin_w*sin_sigma*cos_theta))
+				< 0) //y Komponente of A_air_diff im bahnfesten KS
+    {
+    	sign = -1;
+    } else sign = 1;
     float xtrackErrCirc = sign * sqrtf(A_air_diff_pf.length()*A_air_diff_pf.length() - delta_height*delta_height); // distance from circle in xy plane
 
-    hal.console->println("xtrackErrCirc");
-    hal.console->println(xtrackErrCirc);
-    hal.console->println("xtrackVelCirc");
-    hal.console->println(xtrackVelCirc);
+
+    /*hal.console->print("v_unit_ef_x: ");
+    hal.console->println(v_unit_ef_x);
+    hal.console->print("v_unit_ef_y: ");
+    hal.console->println(v_unit_ef_y);
+    hal.console->print("A_air_diff_pf.length() - delta height: ");
+    hal.console->println(A_air_diff_pf.length() - delta_height);
+    hal.console->print("delta_height angle stuff: ");
+    hal.console->println(sin_sigma*sin_theta*sin_psi + cos_sigma*cos_theta);*/
     //hal.console->println(radius*cos_slope/sqrtf(1-sin_slope*sin_slope*sin_bearing*sin_bearing));
 
     // keep crosstrack error for reporting
@@ -796,14 +843,23 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
     //float powerbasis = (cos_bearing*cos_bearing + cos_slope*cos_slope*cos_slope*cos_slope*sin_bearing*sin_bearing)/(1 - sin_slope*sin_slope*sin_bearing*sin_bearing);
     //float latAccDemCircCtr = velTangent * velTangent / MAX(0.5 * radius/cos_slope*sqrtf(pow(powerbasis,3)), ( radius/cos_slope*sqrtf(pow(powerbasis,3)) + xtrackErrCirc));
     //float latAccDemCircCtr = velTangent * velTangent / MAX(0.5 * radius, radius + xtrackErrCirc);
-    float latAccDemCircCtr = velTangent * velTangent / MAX(0.5 * radius, radius) * cos_slope / sqrtf(A_air_unit.y*A_air_unit.y*cos_slope*cos_slope + A_air_unit.x*A_air_unit.x); // y Komponente von a im bahnfesten Koordinatensystem
+    //float latAccDemCircCtr = velTangent * velTangent / MAX(0.5 * radius, radius) * cos_clear / sqrtf(A_air_unit.y*A_air_unit.y*cos_slope*cos_slope + A_air_unit.x*A_air_unit.x); // y Komponente von a im bahnfesten Koordinatensystem
+    float latAccDemCircCtr;
+    if (segment % 2 == 0) {
+    	latAccDemCircCtr = velTangent * velTangent / MAX(0.5 * radius, radius)
+    		* cos_sigma*cos_theta / sqrtf(A_air_unit.y*A_air_unit.y*cos_theta*cos_theta + (A_air_unit.y*sin_sigma*sin_theta + A_air_unit.x*cos_sigma)*(A_air_unit.y*sin_sigma*sin_theta + A_air_unit.x*cos_sigma));
+    }
+    else {
+    	latAccDemCircCtr = velTangent * velTangent / MAX(0.5 * radius, radius)
+    	    		* sin_sigma*cos_psi / sqrtf(A_air_unit.x*A_air_unit.x*cos_psi*cos_psi + (A_air_unit.x*cos_sigma*sin_psi + A_air_unit.y*sin_sigma)*(A_air_unit.x*cos_sigma*sin_psi + A_air_unit.y*sin_sigma));
+    }
 
     //hal.console->println("a");
     //hal.console->println(velTangent * velTangent / MAX(0.5 * radius, radius));
     //hal.console->println("aProj");
     //hal.console->println(cos_slope / sqrtf(A_air_unit.y*A_air_unit.y*cos_slope*cos_slope + A_air_unit.x*A_air_unit.x));
-    hal.console->println("radius");
-    hal.console->println(radius);
+    //hal.console->println("radius");
+    //hal.console->println(radius);
 
 
     //hal.console->println("Kruemmungsradius");
@@ -815,17 +871,17 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
     //Sum PD control and centripetal acceleration to calculate lateral manoeuvre demand
     //float latAccDemCirc = loiter_direction * (latAccDemCircPD + latAccDemCircCtr) * sinf(acosf(-cosf(_nav_bearing)*sin_slope)); // projection to xy plane
     float latAccDemCirc = (latAccDemCircPD + loiter_direction * latAccDemCircCtr);
-    hal.console->println("latAccDemCirc");
-    hal.console->println(latAccDemCircCtr);
-    hal.console->println("latAccDemPD");
-    hal.console->println(latAccDemCircPD);
+    //hal.console->println("latAccDemCirc");
+    //hal.console->println(latAccDemCircCtr);
+    //hal.console->println("latAccDemPD");
+    //hal.console->println(latAccDemCircPD);
 
     // hal.console->println(sinf(acosf(-cosf(_nav_bearing)*sinf(M_PI/9))));
     // Perform switchover between 'capture' and 'circle' modes at the
     // point where the commands cross over to achieve a seamless transfer
     // Only fly 'capture' mode if outside the circle
     if (-loiter_direction*xtrackErrCirc > 0.0f && loiter_direction * latAccDemCap < loiter_direction * latAccDemCirc) {
-        height = dist * cos_slope; //center_WP.alt - home.alt ;
+        height = dist * cos_sigma*cos_theta; //center_WP.alt - home.alt ;
         //hal.console->println("height cap");
         //hal.console->println(height);
         _latAccDem = latAccDemCap;
@@ -838,8 +894,8 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
         //hal.console->println(_latAccDem);
     } else {
         height = -100*(Height_ef.z);
-        //hal.console->println("height circ");
-        //hal.console->println(height);
+        hal.console->println("height circ");
+        hal.console->println(height);
         _latAccDem = latAccDemCirc;
         _WPcircle = true;
         _bearing_error = 0.0f; // bearing error (radians), +ve to left of track
@@ -854,17 +910,12 @@ void AP_L1_Control::update_loiter_3d(const struct Location &center_WP, float rad
 
     fstream f;
     uint32_t now = AP_HAL::micros();
-    f.open("GPS.txt", ios::out | ios::app);
-    f << now << "  "<< A_air_unit.x << " "<< A_air_unit.y  << " " << _current_loc.lat << " "<< _current_loc.lng << " " << _current_loc.alt/100.0f - 584.38 << " "<< A_air_ef.z + dist/100.0f * cosf(slope) << " " << -Height_ef.z << " " << _nav_bearing << " "
+    f.open("GPS3D.txt", ios::out | ios::app);
+    f << now << "  "<< A_air_unit.x << " "<< A_air_unit.y  << " " << _current_loc.lat << " "<< _current_loc.lng << " " << _current_loc.alt/100.0f - 584.38 << " "<< A_air_ef.z + dist/100.0f * cos_sigma*cos_theta << " " << -Height_ef.z << " " << _nav_bearing << " "
             << _ahrs.roll_sensor << " " << _ahrs.pitch_sensor << " " << _ahrs.yaw_sensor << " " << _latAccDem << " " << xtrackVelCap << " " << ltrackVelCap << " "
             << _track_vel_ef.x << " " << _track_vel_ef.y << " " << _track_vel_ef.z << endl;
     f.close();
 
-
-}
-
-void AP_L1_Control::update_eight_sphere()
-{
 
 }
 
@@ -921,8 +972,8 @@ void AP_L1_Control::update_winddrone(Vector3f normal_vec, float sphere_radius, f
 
     float PD_accel = Kx * g_dist + Kv * v_c;
 
-    float spec_spring_const = 0.2;//5.9;
-    float tether_tension = spec_spring_const * pos_vec.length();//*4.44822;     //4.44822 conversion from pounds to newton
+    float spec_spring_const = 0.2/5.9;
+    float tether_tension = spec_spring_const * pos_vec.length()*4.44822;     //4.44822 conversion from pounds to newton
 
     // centripetal acceleration
     float a_c = v_t * v_t / circle_radius;
@@ -942,12 +993,12 @@ void AP_L1_Control::update_winddrone(Vector3f normal_vec, float sphere_radius, f
     float roll = atan2f(a_c - tether_tension*sinf(tether_angle) + PD_accel, 9.81f + tether_tension*cosf(tether_angle));
 
     _target_bearing_cd = 100*degrees(roll);
-    hal.console->print("v_c: ");
-    hal.console->println(v_c);
-    hal.console->print("PDaccel: ");
+    hal.console->print("length: ");
+    hal.console->println(pos_vec.length());
+   /* hal.console->print("PDaccel: ");
     hal.console->println(PD_accel);
     hal.console->print("gdist: ");
-    hal.console->println(g_dist);
+    hal.console->println(g_dist);*/
 
 
 
@@ -956,12 +1007,15 @@ void AP_L1_Control::update_winddrone(Vector3f normal_vec, float sphere_radius, f
     // Assumption: plane is moving in n_t direction
     //
 
-/*    fstream f;
+  /*  fstream f;
     uint32_t now = AP_HAL::micros();
     f.open("GPS.txt", ios::out | ios::app);
     f << now << " " << pos_vec.x << " " << pos_vec.y << " " << pos_vec.z << " " << _ahrs.roll_sensor << " " << _ahrs.pitch_sensor << " " << _ahrs.yaw_sensor
-    		<< " " << n_t.x << " " << n_t.y << " " << n_t.z << " " << _target_bearing_cd << " " << theta << endl;
+    		<< " " << n_t.x << " " << n_t.y << " " << n_t.z << " " << roll << " " << theta << endl;
     f.close();*/
+
+
+
 }
 
 

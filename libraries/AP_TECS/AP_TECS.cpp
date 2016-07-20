@@ -1169,7 +1169,32 @@ void AP_TECS::update_pitch_throttle_sphere(int32_t hgt_dem_cm,
     _update_speed_demand();
 
     // Calculate the height demand
-    _update_height_demand();
+   // _update_height_demand();
+
+    // Apply 2 point moving average to demanded height
+        /*_hgt_dem = 0.5f * (_hgt_dem + _hgt_dem_in_old);
+        _hgt_dem_in_old = _hgt_dem;*/
+
+
+        _hgt_dem_prev = _hgt_dem;
+        //hal.console->print(" ,height_dem: ");
+        //hal.console->print(_hgt_dem);
+
+        // Apply first order lag to height demand
+        //_hgt_dem_adj = 0.05f * _hgt_dem + 0.95f * _hgt_dem_adj_last;
+
+        // my code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        _hgt_dem_adj =_hgt_dem;
+
+        // for landing approach we will predict ahead by the time constant
+        // plus the lag produced by the first order filter. This avoids a
+        // lagged height demand while constantly descending which causes
+        // us to consistently be above the desired glide slope. This will
+        // be replaced with a better zero-lag filter in the future.
+        float new_hgt_dem = _hgt_dem_adj;
+
+        _hgt_dem_adj_last = _hgt_dem_adj;
+        _hgt_dem_adj = new_hgt_dem;
 
     // Detect underspeed condition
     _detect_underspeed();
@@ -1185,7 +1210,7 @@ void AP_TECS::update_pitch_throttle_sphere(int32_t hgt_dem_cm,
 
 
         // Calculate specific energy demands
-        _SPE_dem = 0.5*_hgt_dem_adj*_hgt_dem_adj*0.2/5.9;//*4.44822;    // 4.44822 conversion from pounds to newton
+        _SPE_dem = 0.5*_hgt_dem_adj*_hgt_dem_adj*0.2/5.9*4.44822;    // 4.44822 conversion from pounds to newton
         _SKE_dem = 0.5f * _TAS_dem_adj * _TAS_dem_adj;
 
         // Calculate specific energy rate demands
@@ -1193,11 +1218,11 @@ void AP_TECS::update_pitch_throttle_sphere(int32_t hgt_dem_cm,
         _SKEdot_dem = _TAS_state * _TAS_rate_dem;
 
         // Calculate specific energy
-        _SPE_est = 0.5*0.2/5.9*posned.length()*posned.length();//*4.44822;
+        _SPE_est = 0.5*0.2/5.9*posned.length()*posned.length()*4.44822;
         _SKE_est = 0.5f * _TAS_state * _TAS_state;
 
         // Calculate specific energy rate
-        _SPEdot = vel*posned * 0.2/5.9;//*4.44822;
+        _SPEdot = vel*posned * 0.2/5.9*4.44822;
         _SKEdot = _TAS_state * _vel_dot;
 
     // Calculate throttle demand - use simple pitch to throttle if no airspeed sensor

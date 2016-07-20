@@ -541,6 +541,7 @@
 			</pow>	
 				<property>position/tether-strength</property>  
 			</product>
+		<!--	<property>position/tether-strength</property> -->
 			</function>
 			<location unit="IN">
 				<x>37.4</x>
