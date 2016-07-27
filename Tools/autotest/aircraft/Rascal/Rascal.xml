@@ -525,21 +525,24 @@
 		<force name="Tether-force" frame="LOCAL">
 			<function>
 			<product>
-			<pow>
-				<sum>
-					<pow>	
-					<property>position/distance-from-start-mag-mt</property>
-					<value>2.0</value>
-					</pow>
-					<pow>	
-					<property>position/distance-from-start-alt-mt</property>
-					<value>2.0</value>
-					</pow>
+			<difference>
+				<pow>
+					<sum>
+						<pow>	
+						<property>position/distance-from-start-mag-mt</property>
+						<value>2.0</value>
+						</pow>
+						<pow>	
+						<property>position/distance-from-start-alt-mt</property>
+						<value>2.0</value>
+						</pow>
 
-				</sum>
-				<value>0.5</value>
-			</pow>	
-				<property>position/tether-strength</property>  
+					</sum>
+					<value>0.5</value>
+				</pow>	
+				<value>450</value>
+			</difference>
+			<property>position/tether-strength</property>  
 			</product>
 		<!--	<property>position/tether-strength</property> -->
 			</function>

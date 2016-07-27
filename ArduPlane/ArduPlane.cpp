@@ -966,7 +966,8 @@ void Plane::update_alt()
                                                              get_takeoff_pitch_min_cd(),
                                                              throttle_nudge,
                                                              tecs_hgt_afe(),
-                                                             aerodynamic_load_factor);
+                                                             aerodynamic_load_factor,
+															 circ_on_sphere.spring_const);
         }
         else {
         SpdHgt_Controller->update_pitch_throttle(relative_target_altitude_cm(),
@@ -977,7 +978,8 @@ void Plane::update_alt()
                                                  get_takeoff_pitch_min_cd(),
                                                  throttle_nudge,
                                                  tecs_hgt_afe(),
-                                                 aerodynamic_load_factor);
+                                                 aerodynamic_load_factor,
+												 eight_sphere.segment);
         }
     }
 }

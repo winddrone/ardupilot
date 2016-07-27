@@ -926,14 +926,14 @@ void Plane::do_loiter_3d()
     float LOCATION_SCALING_FACTOR_INV = 89.83204953368922;
 
     intersection.psi_plane = radians(0);
-    intersection.theta_plane = radians(10);
+    intersection.theta_plane = radians(20);
 
     eight_sphere.omega = radians(0);
     eight_sphere.sigma = radians(0);
 
-    intersection.distance_cm = 50000;
+    intersection.distance_cm = 39300;
 
-    intersection.sphere_radius_cm = 51500;
+    intersection.sphere_radius_cm = 50000;
 
     float cos_psi = cosf(intersection.psi_plane);
     float cos_theta = cosf(intersection.theta_plane);
@@ -964,7 +964,7 @@ void Plane::do_loiter_3d()
     intersection.rot_matrix_pe.c.z = cos_theta;
 
 
-    loiter.direction = 1;
+    loiter.direction = -1;
 
 
     /*hal.console->println("Welcome to Loiter 3D");
@@ -986,11 +986,13 @@ void Plane::do_eight_sphere()
 {
     float LOCATION_SCALING_FACTOR_INV = 89.83204953368922;
 
+    // define the shape of eight
     eight_sphere.cross_angle = radians(30);
     eight_sphere.arc_length_angle = radians(20);
 
+    // orientation of eight
     eight_sphere.omega = radians(0);
-    eight_sphere.sigma = radians(-60);
+    eight_sphere.sigma = radians(-45);
 
     intersection.sphere_radius_cm = 50000;
 
@@ -1102,7 +1104,7 @@ void Plane::do_winddrone()
 
 	circ_on_sphere.normal_vec.x = 0;
 	circ_on_sphere.normal_vec.y = 0;
-	circ_on_sphere.normal_vec.z = 1;
+	circ_on_sphere.normal_vec.z = -1;
 
 	circ_on_sphere.sphere_radius = 125.0;
 

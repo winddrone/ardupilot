@@ -3,6 +3,9 @@
 #include "AP_TECS.h"
 #include <AP_HAL/AP_HAL.h>
 
+#include <fstream> // spaeter loeschen
+using namespace std; // spaeter loeschen
+
 extern const AP_HAL::HAL& hal;
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
@@ -319,14 +322,14 @@ void AP_TECS::update_50hz(void)
         }
     }
     //specific spring constant from AP_L1_Control, check that both values are the same!!!!!
-    float spec_spring_const = 0.2/5.9;
+    //float spec_spring_const = 0.2/5.9;
 
     // Update and average speed rate of change
     // Get DCM
     const Matrix3f &rotMat = _ahrs.get_rotation_body_to_ned();
     // Calculate speed rate of change
-    Vector3f posned_body = rotMat.transposed()*posned;
-    float temp = rotMat.c.x * GRAVITY_MSS + _ahrs.get_ins().get_accel().x - posned_body.x*spec_spring_const;
+    //Vector3f posned_body = rotMat.transposed()*posned;
+    float temp = rotMat.c.x * GRAVITY_MSS + _ahrs.get_ins().get_accel().x;// - posned_body.x*spec_spring_const;
     // take 5 point moving average
     _vel_dot = _vdot_filter.apply(temp);
 
@@ -446,8 +449,8 @@ void AP_TECS::_update_speed_demand(void)
 void AP_TECS::_update_height_demand(void)
 {
     // Apply 2 point moving average to demanded height
-    /*_hgt_dem = 0.5f * (_hgt_dem + _hgt_dem_in_old);
-    _hgt_dem_in_old = _hgt_dem;*/
+    //_hgt_dem = 0.5f * (_hgt_dem + _hgt_dem_in_old);
+    //_hgt_dem_in_old = _hgt_dem;
 
     float max_sink_rate = _maxSinkRate;
     if (_maxSinkRate_approach > 0 && _flags.is_doing_auto_land) {
@@ -681,6 +684,7 @@ void AP_TECS::_update_throttle(void)
 
     // Constrain throttle demand
     _throttle_dem = constrain_float(_throttle_dem, _THRminf, _THRmaxf);
+
 }
 
 float AP_TECS::_get_i_gain(void)
@@ -758,8 +762,20 @@ void AP_TECS::_detect_bad_descent(void)
     }
 }
 
-void AP_TECS::_update_pitch(void)
+void AP_TECS::_update_pitch(int32_t segment)
 {
+	// my code, try to implement force control
+	struct Location _current_loc;
+	 _ahrs.get_position(_current_loc);
+	Vector3f pos_vec = location_diff_3d(_ahrs.get_home(),_current_loc);
+	float gain = 0;
+	float diff_tether_length = 0;
+
+	if(pos_vec.length() > 450) {
+		diff_tether_length = 500 - pos_vec.length();
+		gain = 100;
+	}
+
     // Calculate Speed/Height Control Weighting
     // This is used to determine how the pitch control prioritises speed and height control
     // A weighting of 1 provides equal priority (this is the normal mode of operation)
@@ -767,6 +783,13 @@ void AP_TECS::_update_pitch(void)
     // A SKE_weighting of 2 provides 100% priority to speed control. This is used when an underspeed condition is detected. In this instance, if airspeed
     // rises above the demanded value, the pitch angle will be increased by the TECS controller.
     float SKE_weighting = constrain_float(_spdWeight, 0.0f, 2.0f);
+
+    if(segment % 2 == 0) {
+    	SKE_weighting = 1.2;
+    } else {
+    	SKE_weighting = 0.1;
+    }
+
     if (!_ahrs.airspeed_sensor_enabled()) {
         SKE_weighting = 0.0f;
     } else if ( _flags.underspeed || _flight_stage == AP_TECS::FLIGHT_TAKEOFF || _flight_stage == AP_TECS::FLIGHT_LAND_ABORT) {
@@ -856,9 +879,10 @@ void AP_TECS::_update_pitch(void)
     // Constrain pitch demand
     _pitch_dem = constrain_float(_pitch_dem_unc, _PITCHminf, _PITCHmaxf);
 
+
     // Rate limit the pitch demand to comply with specified vertical
     // acceleration limit
-    float ptchRateIncr = _DT * _vertAccLim / _TAS_state;
+ /*   float ptchRateIncr = _DT * _vertAccLim / _TAS_state;
 
     if ((_pitch_dem - _last_pitch_dem) > ptchRateIncr)
     {
@@ -867,12 +891,21 @@ void AP_TECS::_update_pitch(void)
     else if ((_pitch_dem - _last_pitch_dem) < -ptchRateIncr)
     {
         _pitch_dem = _last_pitch_dem - ptchRateIncr;
-    }
+    } */
+
+    //pitch correction for tetherforce
+    if(pos_vec.length() > 450)
+    _pitch_dem += gain * diff_tether_length - 50*_climb_rate;
 
     // re-constrain pitch demand
     _pitch_dem = constrain_float(_pitch_dem, _PITCHminf, _PITCHmaxf);
 
     _last_pitch_dem = _pitch_dem;
+
+    fstream f;
+    f.open("GPS3D.txt", ios::out | ios::app);
+    f << _pitch_dem << " " << _throttle_dem << " " << _vel_dot << " " << _ahrs.get_airspeed()->get_airspeed() << endl;
+    f.close();
 }
 
 void AP_TECS::_initialise_states(int32_t ptchMinCO_cd, float hgt_afe)
@@ -925,7 +958,8 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
                                     int32_t ptchMinCO_cd,
                                     int16_t throttle_nudge,
                                     float hgt_afe,
-                                    float load_factor)
+                                    float load_factor,
+									int32_t segment)
 {
     // Calculate time in seconds since last update
     uint64_t now = AP_HAL::micros64();
@@ -1039,7 +1073,7 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
     _detect_bad_descent();
 
     // Calculate pitch demand
-    _update_pitch();
+    _update_pitch(segment);
 
     // log to DataFlash
     DataFlash_Class::instance()->Log_Write("TECS", "TimeUS,h,dh,hdem,dhdem,spdem,sp,dsp,ith,iph,th,ph,dspdem,w,f", "QfffffffffffffB",
@@ -1074,7 +1108,8 @@ void AP_TECS::update_pitch_throttle_sphere(int32_t hgt_dem_cm,
                                     int32_t ptchMinCO_cd,
                                     int16_t throttle_nudge,
                                     float hgt_afe,
-                                    float load_factor)
+                                    float load_factor,
+									float spring_const)
 {
     // Calculate time in seconds since last update
     uint64_t now = AP_HAL::micros64();
@@ -1210,7 +1245,7 @@ void AP_TECS::update_pitch_throttle_sphere(int32_t hgt_dem_cm,
 
 
         // Calculate specific energy demands
-        _SPE_dem = 0.5*_hgt_dem_adj*_hgt_dem_adj*0.2/5.9*4.44822;    // 4.44822 conversion from pounds to newton
+        _SPE_dem = 0.5*_hgt_dem_adj*_hgt_dem_adj*spring_const/5.9*4.44822;    // 4.44822 conversion from pounds to newton
         _SKE_dem = 0.5f * _TAS_dem_adj * _TAS_dem_adj;
 
         // Calculate specific energy rate demands
@@ -1218,11 +1253,11 @@ void AP_TECS::update_pitch_throttle_sphere(int32_t hgt_dem_cm,
         _SKEdot_dem = _TAS_state * _TAS_rate_dem;
 
         // Calculate specific energy
-        _SPE_est = 0.5*0.2/5.9*posned.length()*posned.length()*4.44822;
+        _SPE_est = 0.5*spring_const/5.9*posned.length()*posned.length()*4.44822;
         _SKE_est = 0.5f * _TAS_state * _TAS_state;
 
         // Calculate specific energy rate
-        _SPEdot = vel*posned * 0.2/5.9*4.44822;
+        _SPEdot = vel*posned * spring_const/5.9*4.44822;
         _SKEdot = _TAS_state * _vel_dot;
 
     // Calculate throttle demand - use simple pitch to throttle if no airspeed sensor
@@ -1299,7 +1334,7 @@ void AP_TECS::update_pitch_throttle_sphere(int32_t hgt_dem_cm,
         // demand equal to the minimum value (which is )set by the mission plan during this mode). Otherwise the
         // integrator has to catch up before the nose can be raised to reduce speed during climbout.
         // During flare a different damping gain is used
-        float gainInv = (_TAS_state * timeConstant() * 0.2/5.9*posned.length());//*4.44822
+        float gainInv = (_TAS_state * timeConstant() * spring_const/5.9*posned.length());//*4.44822
         float temp = SEB_error + SEBdot_dem * timeConstant();
 
         float pitch_damp = _ptchDamp;

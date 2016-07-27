@@ -754,7 +754,7 @@ private:
         struct Location circle_center_left;
         struct Location circle_center_right;
 
-        int8_t segment = 0;         // defines on which segment of the eight the plane is
+        int32_t segment = 0;         // defines on which segment of the eight the plane is
 
     } eight_sphere;
 

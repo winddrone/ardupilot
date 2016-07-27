@@ -46,7 +46,8 @@ public:
 										int32_t ptchMinCO_cd,
 										int16_t throttle_nudge,
                                         float hgt_afe,
-                                        float load_factor) = 0;
+                                        float load_factor,
+										int32_t segment) = 0;
 
 	virtual void update_pitch_throttle_sphere( int32_t hgt_dem_cm,
 	        int32_t EAS_dem_cm,
@@ -56,7 +57,8 @@ public:
 	        int32_t ptchMinCO_cd,
 	        int16_t throttle_nudge,
 	        float hgt_afe,
-	        float load_factor) = 0;
+	        float load_factor,
+			float spring_const) = 0;
 
 
 	// demanded throttle in percentage
