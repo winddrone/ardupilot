@@ -88,6 +88,8 @@
 #include <AP_RSSI/AP_RSSI.h>                   // RSSI Library
 #include <AP_Parachute/AP_Parachute.h>
 #include <AP_ADSB/AP_ADSB.h>
+#include <AP_Button/AP_Button.h>
+#include <AP_ICEngine/AP_ICEngine.h>
 
 #include "GCS_Mavlink.h"
 #include "quadplane.h"
@@ -131,6 +133,7 @@ class Plane : public AP_HAL::HAL::Callbacks {
 public:
     friend class GCS_MAVLINK_Plane;
     friend class Parameters;
+    friend class ParametersG2;
     friend class AP_Arming_Plane;
     friend class QuadPlane;
     friend class AP_Tuning_Plane;
@@ -146,8 +149,9 @@ private:
     AP_Vehicle::FixedWing aparm;
     AP_HAL::BetterStream* cliSerial;
 
-    // Global parameters are all contained within the 'g' class.
+    // Global parameters are all contained within the 'g' and 'g2' classes.
     Parameters g;
+    ParametersG2 g2;
 
     // main loop scheduler
     AP_Scheduler scheduler;
@@ -442,6 +446,9 @@ private:
         // are we in auto and flight mode is approach || pre-flare || final (flare)
         bool land_in_progress:1;
 
+        // are we headed to the land approach waypoint? Works for any nav type
+        bool wp_is_land_approach:1;
+
         // should we fly inverted?
         bool inverted_flight:1;
 
@@ -524,6 +531,9 @@ private:
 
         // are we doing loiter mode as a VTOL?
         bool vtol_loiter:1;
+
+        // landing altitude offset (meters)
+        float land_alt_offset;
     } auto_state;
 
     struct {
@@ -631,7 +641,6 @@ private:
         // previous wp to restore to when switching between modes back to AUTO
         Location prev_wp;
     } adsb_state;
-
 
     // Outback Challenge Failsafe Support
 #if OBC_FAILSAFE == ENABLED
@@ -794,7 +803,6 @@ private:
     void send_nav_controller_output(mavlink_channel_t chan);
     void send_position_target_global_int(mavlink_channel_t chan);
     void send_servo_out(mavlink_channel_t chan);
-    void send_radio_out(mavlink_channel_t chan);
     void send_vfr_hud(mavlink_channel_t chan);
     void send_simstate(mavlink_channel_t chan);
     void send_hwstatus(mavlink_channel_t chan);
@@ -856,6 +864,7 @@ private:
     void setup_terrain_target_alt(Location &loc);
     int32_t adjusted_altitude_cm(void);
     int32_t adjusted_relative_altitude_cm(void);
+    float mission_alt_offset(void);
     float height_above_target(void);
     float lookahead_adjustment(void);
     float rangefinder_correction(void);
@@ -948,6 +957,8 @@ private:
     void read_battery(void);
     void read_receiver_rssi(void);
     void rpm_update(void);
+    void button_update(void);
+    void ice_update(void);
     void report_radio();
     void report_ins();
     void report_compass();

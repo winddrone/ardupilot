@@ -241,6 +241,9 @@ private:
 
         // true when plane is in auto mode and executing a land mission item
         bool is_doing_auto_land:1;
+
+        // true when we have reached target speed in takeoff
+        bool reached_speed_takeoff:1;
     };
     union {
         struct flags _flags;
@@ -287,6 +290,9 @@ private:
     // counter for demanded sink rate on land final
     uint8_t _flare_counter;
 
+    // slew height demand lag filter value when transition to land
+    float hgt_dem_lag_filter_slew;
+
     // percent traveled along the previous and next waypoints
     float _path_proportion;
 
@@ -316,10 +322,10 @@ private:
     void _update_energies(void);
 
     // Update Demanded Throttle
-    void _update_throttle(void);
+    void _update_throttle_with_airspeed(void);
 
     // Update Demanded Throttle Non-Airspeed
-    void _update_throttle_option(int16_t throttle_nudge);
+    void _update_throttle_without_airspeed(int16_t throttle_nudge);
 
     // get integral gain which is flight_stage dependent
     float _get_i_gain(void);

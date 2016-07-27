@@ -3,6 +3,7 @@
 #include "AP_BattMonitor_Analog.h"
 #include "AP_BattMonitor_SMBus.h"
 #include "AP_BattMonitor_Bebop.h"
+#include <AP_Vehicle/AP_Vehicle_Type.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -155,7 +156,7 @@ AP_BattMonitor::init()
         return;
     }
 
-#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_DISCO
     // force monitor for bebop
     _monitoring[0] = BattMonitor_TYPE_BEBOP;
 #endif
@@ -175,12 +176,13 @@ AP_BattMonitor::init()
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
                 drivers[instance] = new AP_BattMonitor_SMBus_PX4(*this, instance, state[instance]);
 #else
-                drivers[instance] = new AP_BattMonitor_SMBus_I2C(*this, instance, state[instance]);
+                drivers[instance] = new AP_BattMonitor_SMBus_I2C(*this, instance, state[instance],
+                                                                 hal.i2c_mgr->get_device(BATTMONITOR_SBUS_I2C_BUS, BATTMONITOR_SMBUS_I2C_ADDR));
 #endif
                 _num_instances++;
                 break;
             case BattMonitor_TYPE_BEBOP:
-#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP
+#if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP || CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_DISCO
                 state[instance].instance = instance;
                 drivers[instance] = new AP_BattMonitor_Bebop(*this, instance, state[instance]);
                 _num_instances++;
@@ -297,7 +299,6 @@ bool AP_BattMonitor::exhausted(uint8_t instance, float low_voltage, float min_ca
     return false;
 }
 
-#if APM_BUILD_TYPE(APM_BUILD_ArduPlane)
 // return true if any battery is pushing too much power
 bool AP_BattMonitor::overpower_detected() const
 {
@@ -310,11 +311,14 @@ bool AP_BattMonitor::overpower_detected() const
 
 bool AP_BattMonitor::overpower_detected(uint8_t instance) const
 {
+#if APM_BUILD_TYPE(APM_BUILD_ArduPlane)
     if (instance < _num_instances && _watt_max[instance] > 0) {
         float power = _BattMonitor_STATE(instance).current_amps * _BattMonitor_STATE(instance).voltage;
         return _BattMonitor_STATE(instance).healthy && (power > _watt_max[instance]);
     }
     return false;
-}
+#else
+    return false;
 #endif
+}
 

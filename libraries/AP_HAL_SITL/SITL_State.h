@@ -30,6 +30,7 @@ class HAL_SITL;
 class HALSITL::SITL_State {
     friend class HALSITL::Scheduler;
     friend class HALSITL::Util;
+    friend class HALSITL::GPIO;
 public:
     void init(int argc, char * const argv[]);
 
@@ -87,6 +88,8 @@ private:
     void _update_barometer(float height);
     void _update_compass(float rollDeg, float pitchDeg, float yawDeg);
     void _update_flow(void);
+
+    void _set_signal_handlers(void) const;
 
     struct gps_data {
         double latitude;

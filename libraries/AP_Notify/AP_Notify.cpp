@@ -49,6 +49,13 @@ const AP_Param::GroupInfo AP_Notify::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("BUZZ_ENABLE", 1, AP_Notify, _buzzer_enable, BUZZER_ON),
 
+    // @Param: LED_OVERRIDE
+    // @DisplayName: Setup for MAVLink LED override
+    // @Description: This sets up the board RGB LED for override by MAVLink. Normal notify LED control is disabled
+    // @Values: 0:Disable,1:Enable
+    // @User: Advanced
+    AP_GROUPINFO("LED_OVERRIDE", 2, AP_Notify, _rgb_led_override, 0),
+    
     AP_GROUPEND
 };
 
@@ -162,5 +169,13 @@ void AP_Notify::handle_led_control(mavlink_message_t *msg)
 {
     for (uint8_t i = 0; i < CONFIG_NOTIFY_DEVICES_COUNT; i++) {
         _devices[i]->handle_led_control(msg);
+    }
+}
+
+// handle a PLAY_TUNE message
+void AP_Notify::handle_play_tune(mavlink_message_t *msg)
+{
+    for (uint8_t i = 0; i < CONFIG_NOTIFY_DEVICES_COUNT; i++) {
+        _devices[i]->handle_play_tune(msg);
     }
 }

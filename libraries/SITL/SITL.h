@@ -29,7 +29,7 @@ struct sitl_fdm {
 };
 
 // number of rc output channels
-#define SITL_NUM_CHANNELS 14
+#define SITL_NUM_CHANNELS 16
 
 class SITL {
 public:
@@ -103,8 +103,11 @@ public:
     AP_Int16 flow_rate; // optflow data rate (Hz)
     AP_Int8  flow_delay; // optflow data delay
     AP_Int8  terrain_enable; // enable using terrain for height
+    AP_Int8  pin_mask; // for GPIO emulation
 
     // wind control
+    float wind_speed_active;
+    float wind_direction_active;
     AP_Float wind_speed;
     AP_Float wind_direction;
     AP_Float wind_turbulance;

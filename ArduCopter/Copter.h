@@ -50,7 +50,6 @@
 #include <AP_NavEKF/AP_NavEKF.h>
 #include <AP_NavEKF2/AP_NavEKF2.h>
 #include <AP_Mission/AP_Mission.h>         // Mission command library
-#include <AP_Rally/AP_Rally.h>           // Rally point library
 #include <AC_PID/AC_PID.h>             // PID library
 #include <AC_PID/AC_PI_2D.h>           // PID library (2-axis)
 #include <AC_PID/AC_HELI_PID.h>        // Heli specific Rate PID library
@@ -89,12 +88,14 @@
 #include <AP_RPM/AP_RPM.h>
 #include <AC_InputManager/AC_InputManager.h>        // Pilot input handling library
 #include <AC_InputManager/AC_InputManager_Heli.h>   // Heli specific pilot input handling library
+#include <AP_Button/AP_Button.h>
 
 // Configuration
 #include "defines.h"
 #include "config.h"
 
 #include "GCS_Mavlink.h"
+#include "AP_Rally.h"           // Rally point library
 
 // libraries which are dependent on #defines in defines.h and/or config.h
 #if SPRAYER == ENABLED
@@ -113,6 +114,7 @@
 
 // Local modules
 #include "Parameters.h"
+#include "avoidance_adsb.h"
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
 #include <SITL/SITL.h>
@@ -121,7 +123,9 @@
 class Copter : public AP_HAL::HAL::Callbacks {
 public:
     friend class GCS_MAVLINK_Copter;
+    friend class AP_Rally_Copter;
     friend class Parameters;
+    friend class AP_Avoidance_Copter;
 
     Copter(void);
 
@@ -291,6 +295,7 @@ private:
         uint8_t gcs                 : 1; // 4   // A status flag for the ground station failsafe
         uint8_t ekf                 : 1; // 5   // true if ekf failsafe has occurred
         uint8_t terrain             : 1; // 6   // true if the missing terrain data failsafe has occurred
+        uint8_t adsb                : 1; // 7   // true if an adsb related failsafe has occurred
 
         int8_t radio_counter;            // number of iterations with throttle below throttle_fs_value
 
@@ -508,7 +513,7 @@ private:
 
     // Rally library
 #if AC_RALLY == ENABLED
-    AP_Rally rally;
+    AP_Rally_Copter rally;
 #endif
 
     // RSSI 
@@ -550,6 +555,9 @@ private:
 #endif
 
     AP_ADSB adsb {ahrs};
+
+    // avoidance of adsb enabled vehicles (normally manned vheicles)
+    AP_Avoidance_Copter avoidance_adsb{ahrs, adsb};
 
     // use this to prevent recursion during sensor init
     bool in_mavlink_delay;
@@ -653,12 +661,12 @@ private:
     void send_simstate(mavlink_channel_t chan);
     void send_hwstatus(mavlink_channel_t chan);
     void send_servo_out(mavlink_channel_t chan);
-    void send_radio_out(mavlink_channel_t chan);
     void send_vfr_hud(mavlink_channel_t chan);
     void send_current_waypoint(mavlink_channel_t chan);
     void send_rangefinder(mavlink_channel_t chan);
     void send_rpm(mavlink_channel_t chan);
     void rpm_update();
+    void button_update();
     void send_pid_tuning(mavlink_channel_t chan);
     void gcs_send_message(enum ap_message id);
     void gcs_send_mission_item_reached_message(uint16_t mission_index);
@@ -776,8 +784,7 @@ private:
     void autotune_updating_p_up(float &tune_p, float tune_p_max, float tune_p_step_ratio, float target, float measurement_max);
     void autotune_updating_p_up_d_down(float &tune_d, float tune_d_min, float tune_d_step_ratio, float &tune_p, float tune_p_min, float tune_p_max, float tune_p_step_ratio, float target, float measurement_min, float measurement_max);
     void autotune_twitching_measure_acceleration(float &rate_of_change, float rate_measurement, float &rate_measurement_max);
-    void adsb_update(void);
-    void adsb_handle_vehicle_threats(void);
+    void avoidance_adsb_update(void);
     bool brake_init(bool ignore_checks);
     void brake_run();
     void brake_timeout_to_loiter_ms(uint32_t timeout_ms);
@@ -805,6 +812,7 @@ private:
     void guided_vel_control_run();
     void guided_posvel_control_run();
     void guided_angle_control_run();
+    void guided_set_desired_velocity_with_accel_and_fence_limits(const Vector3f& vel_des);
     void guided_limit_clear();
     void guided_limit_set(uint32_t timeout_ms, float alt_min_cm, float alt_max_cm, float horiz_max_cm);
     void guided_limit_init_time_and_pos();
@@ -813,7 +821,8 @@ private:
     void land_run();
     void land_gps_run();
     void land_nogps_run();
-    float get_land_descent_speed();
+    void land_run_vertical_control(bool pause_descent = false);
+    void land_run_horizontal_control();
     void land_do_not_use_GPS();
     void set_mode_land_with_pause(mode_reason_t reason);
     bool landing_with_GPS();
@@ -859,6 +868,12 @@ private:
     void parachute_check();
     void parachute_release();
     void parachute_manual_release();
+
+    // support for AP_Avoidance custom flight mode, AVOID_ADSB
+    bool avoid_adsb_init(bool ignore_checks);
+    void avoid_adsb_run();
+    bool avoid_adsb_set_velocity(const Vector3f& velocity_neu);
+
     void ekf_check();
     bool ekf_over_threshold();
     void failsafe_ekf_event();
@@ -921,7 +936,6 @@ private:
     void pre_arm_rc_checks();
     bool pre_arm_gps_checks(bool display_failure);
     bool pre_arm_ekf_attitude_check();
-    bool pre_arm_rallypoint_check();
     bool pre_arm_terrain_check(bool display_failure);
     bool arm_checks(bool display_failure, bool arming_from_gcs);
     void init_disarm_motors();

@@ -90,6 +90,15 @@ revisions.
         default=False,
         help="Don't use libiio even if supported by board and dependencies available")
 
+    g.add_option('--disable-tests', action='store_true',
+        default=False,
+        help="Disable compilation and test execution")
+
+    g.add_option('--static',
+        action='store_true',
+        default=False,
+        help='Force a static build')
+
 def _collect_autoconfig_files(cfg):
     for m in sys.modules.values():
         paths = []
@@ -122,13 +131,33 @@ def configure(cfg):
     # Allow to differentiate our build from the make build
     cfg.define('WAF_BUILD', 1)
 
+    if cfg.options.static:
+        cfg.msg('Using static linking', 'yes', color='YELLOW')
+        cfg.env.STATIC_LINKING = True
+
     cfg.msg('Setting board to', cfg.options.board)
     cfg.get_board().configure(cfg)
 
     cfg.load('clang_compilation_database')
     cfg.load('waf_unit_test')
     cfg.load('mavgen')
-    cfg.load('git_submodule')
+
+    cfg.env.SUBMODULE_UPDATE = cfg.options.submodule_update
+
+    cfg.start_msg('Source is git repository')
+    if cfg.srcnode.find_node('.git'):
+        cfg.end_msg('yes')
+    else:
+        cfg.end_msg('no')
+        cfg.env.SUBMODULE_UPDATE = False
+
+    cfg.start_msg('Update submodules')
+    if cfg.env.SUBMODULE_UPDATE:
+        cfg.end_msg('yes')
+        cfg.load('git_submodule')
+    else:
+        cfg.end_msg('no')
+
     if cfg.options.enable_benchmarks:
         cfg.load('gbenchmark')
     cfg.load('gtest')
@@ -158,9 +187,6 @@ def configure(cfg):
     cfg.env.prepend_value('DEFINES', [
         'SKETCHBOOK="' + cfg.srcnode.abspath() + '"',
     ])
-
-    if cfg.options.submodule_update:
-        cfg.env.SUBMODULE_UPDATE = True
 
     # Always use system extensions
     cfg.define('_GNU_SOURCE', 1)
@@ -226,7 +252,8 @@ def _build_common_taskgens(bld):
         use='mavlink',
     )
 
-    bld.libgtest(cxxflags=['-include', 'ap_config.h'])
+    if bld.env.HAS_GTEST:
+        bld.libgtest(cxxflags=['-include', 'ap_config.h'])
 
     if bld.env.HAS_GBENCHMARK:
         bld.libbenchmark()
@@ -239,8 +266,9 @@ def _build_recursion(bld):
         '*',
         'Tools/*',
         'libraries/*/examples/*',
-        '**/tests',
-        '**/benchmarks',
+        'libraries/*/tests',
+        'libraries/*/utility/tests',
+        'libraries/*/benchmarks',
     ]
 
     common_dirs_excl = [
@@ -250,8 +278,8 @@ def _build_recursion(bld):
     ]
 
     hal_dirs_patterns = [
-        'libraries/%s/**/tests',
-        'libraries/%s/**/benchmarks',
+        'libraries/%s/*/tests',
+        'libraries/%s/*/benchmarks',
         'libraries/%s/examples/*',
     ]
 
@@ -314,6 +342,8 @@ def build(bld):
     )
 
     bld.load('build_summary')
+    if bld.env.SUBMODULE_UPDATE:
+        bld.git_submodule_post_fun()
 
 ardupilotwaf.build_command('check',
     program_group_list='all',

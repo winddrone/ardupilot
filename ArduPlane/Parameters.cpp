@@ -1357,8 +1357,34 @@ const AP_Param::Info Plane::var_info[] = {
     // @Path: ../libraries/AP_Notify/AP_Notify.cpp
     GOBJECT(notify, "NTF_",  AP_Notify),
 
+    // @Group: 
+    // @Path: Parameters.cpp
+    GOBJECT(g2, "",  ParametersG2),
+    
     AP_VAREND
 };
+
+/*
+  2nd group of parameters
+ */
+const AP_Param::GroupInfo ParametersG2::var_info[] = {
+
+    // @Group: BTN_
+    // @Path: ../libraries/AP_Button/AP_Button.cpp
+    AP_SUBGROUPINFO(button, "BTN_", 1, ParametersG2, AP_Button),
+
+    // @Group: ICE_
+    // @Path: ../libraries/AP_ICEngine/AP_ICEngine.cpp
+    AP_SUBGROUPINFO(ice_control, "ICE_", 2, ParametersG2, AP_ICEngine),
+    
+    AP_GROUPEND
+};
+
+ParametersG2::ParametersG2(void) :
+    ice_control(plane.rpm_sensor, plane.ahrs)
+{
+    AP_Param::setup_object_defaults(this, var_info);
+}
 
 /*
   This is a conversion table from old parameter values to new

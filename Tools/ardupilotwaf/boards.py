@@ -138,7 +138,7 @@ class Board:
                 '-Wno-c++11-narrowing'
             ]
         else:
-            env.CXXFLAFS += [
+            env.CXXFLAGS += [
                 '-Werror=unused-but-set-variable'
             ]
 
@@ -156,6 +156,9 @@ class Board:
             env.LINKFLAGS += [
                 '-Wl,--gc-sections',
             ]
+
+        # We always want to use PRI format macros
+        cfg.define('__STDC_FORMAT_MACROS', 1)
 
 
     def build(self, bld):
@@ -231,15 +234,13 @@ class linux(Board):
 
         cfg.check_librt(env)
         cfg.check_lttng(env)
+        cfg.check_libdl(env)
         cfg.check_libiio(env)
 
         env.LINKFLAGS += ['-pthread',]
         env.AP_LIBRARIES = [
             'AP_HAL_Linux',
         ]
-
-        # We always want to use PRI format macros
-        cfg.define('__STDC_FORMAT_MACROS', 1)
 
 
 class minlure(linux):
@@ -320,7 +321,16 @@ class bebop(linux):
         env.DEFINES.update(
             CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_LINUX_BEBOP',
         )
-        env.STATIC_LINKING = True
+
+class disco(linux):
+    toolchain = 'arm-linux-gnueabihf'
+
+    def configure_env(self, cfg, env):
+        super(disco, self).configure_env(cfg, env)
+
+        env.DEFINES.update(
+            CONFIG_HAL_BOARD_SUBTYPE = 'HAL_BOARD_SUBTYPE_LINUX_DISCO',
+        )
 
 class raspilot(linux):
     toolchain = 'arm-linux-gnueabihf'

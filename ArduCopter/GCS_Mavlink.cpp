@@ -36,7 +36,7 @@ NOINLINE void Copter::send_heartbeat(mavlink_channel_t chan)
     uint32_t custom_mode = control_mode;
 
     // set system as critical if any failsafe have triggered
-    if (failsafe.radio || failsafe.battery || failsafe.gcs || failsafe.ekf || failsafe.terrain)  {
+    if (failsafe.radio || failsafe.battery || failsafe.gcs || failsafe.ekf || failsafe.terrain || failsafe.adsb)  {
         system_status = MAV_STATE_CRITICAL;
     }
 
@@ -378,22 +378,6 @@ void NOINLINE Copter::send_servo_out(mavlink_channel_t chan)
 #endif // HIL_MODE
 }
 
-void NOINLINE Copter::send_radio_out(mavlink_channel_t chan)
-{
-    mavlink_msg_servo_output_raw_send(
-        chan,
-        micros(),
-        0,     // port
-        hal.rcout->read(0),
-        hal.rcout->read(1),
-        hal.rcout->read(2),
-        hal.rcout->read(3),
-        hal.rcout->read(4),
-        hal.rcout->read(5),
-        hal.rcout->read(6),
-        hal.rcout->read(7));
-}
-
 void NOINLINE Copter::send_vfr_hud(mavlink_channel_t chan)
 {
     mavlink_msg_vfr_hud_send(
@@ -584,7 +568,7 @@ bool GCS_MAVLINK_Copter::try_send_message(enum ap_message id)
 
     case MSG_RADIO_OUT:
         CHECK_PAYLOAD_SIZE(SERVO_OUTPUT_RAW);
-        copter.send_radio_out(chan);
+        send_servo_output_raw(false);
         break;
 
     case MSG_VFR_HUD:
@@ -969,6 +953,13 @@ void GCS_MAVLINK_Copter::handle_change_alt_request(AP_Mission::Mission_Command &
     }
 
     // To-Do: update target altitude for loiter or waypoint controller depending upon nav mode
+}
+
+void GCS_MAVLINK_Copter::packetReceived(const mavlink_status_t &status,
+                                        mavlink_message_t &msg)
+{
+    copter.avoidance_adsb.handle_msg(msg);
+    GCS_MAVLINK::packetReceived(status, msg);
 }
 
 void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
@@ -2064,6 +2055,11 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
         AP_Notify::handle_led_control(msg);
         break;
 
+    case MAVLINK_MSG_ID_PLAY_TUNE:
+        // send message to Notify
+        AP_Notify::handle_play_tune(msg);
+        break;
+                
     case MAVLINK_MSG_ID_SET_HOME_POSITION:
     {
         mavlink_set_home_position_t packet;
@@ -2090,6 +2086,12 @@ void GCS_MAVLINK_Copter::handleMessage(mavlink_message_t* msg)
     case MAVLINK_MSG_ID_ADSB_VEHICLE:
 #if ADSB_ENABLED == ENABLED
         copter.adsb.update_vehicle(msg);
+#endif
+        break;
+
+    case MAVLINK_MSG_ID_UAVIONIX_ADSB_OUT_DYNAMIC:
+#if ADSB_ENABLED == ENABLED
+        copter.adsb.transceiver_report(chan, msg);
 #endif
         break;
 

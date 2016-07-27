@@ -3,7 +3,7 @@
 #include "Copter.h"
 
 /*
- * control_guided.pde - init and run calls for guided flight mode
+ * Init and run calls for guided flight mode
  */
 
 #ifndef GUIDED_LOOK_AT_TARGET_MIN_DISTANCE_CM
@@ -13,10 +13,10 @@
 #define GUIDED_POSVEL_TIMEOUT_MS    3000    // guided mode's position-velocity controller times out after 3seconds with no new updates
 #define GUIDED_ATTITUDE_TIMEOUT_MS  1000    // guided mode's attitude controller times out after 1 second with no new updates
 
-static Vector3f posvel_pos_target_cm;
-static Vector3f posvel_vel_target_cms;
-static uint32_t posvel_update_time_ms;
-static uint32_t vel_update_time_ms;
+static Vector3f guided_pos_target_cm;       // position target (used by posvel controller only)
+static Vector3f guided_vel_target_cms;      // velocity target (used by velocity controller and posvel controller)
+static uint32_t posvel_update_time_ms;      // system time of last target update to posvel controller (i.e. position and velocity update)
+static uint32_t vel_update_time_ms;         // system time of last target update to velocity controller
 
 struct {
     uint32_t update_time_ms;
@@ -236,10 +236,9 @@ void Copter::guided_set_velocity(const Vector3f& velocity)
         guided_vel_control_start();
     }
 
+    // record velocity target
+    guided_vel_target_cms = velocity;
     vel_update_time_ms = millis();
-
-    // set position controller velocity target
-    pos_control.set_desired_velocity(velocity);
 
     // log target
     Log_Write_GuidedTarget(guided_mode, Vector3f(), velocity);
@@ -253,10 +252,10 @@ void Copter::guided_set_destination_posvel(const Vector3f& destination, const Ve
     }
 
     posvel_update_time_ms = millis();
-    posvel_pos_target_cm = destination;
-    posvel_vel_target_cms = velocity;
+    guided_pos_target_cm = destination;
+    guided_vel_target_cms = velocity;
 
-    pos_control.set_pos_target(posvel_pos_target_cm);
+    pos_control.set_pos_target(guided_pos_target_cm);
 
     // log target
     Log_Write_GuidedTarget(guided_mode, destination, velocity);
@@ -440,7 +439,9 @@ void Copter::guided_vel_control_run()
     // set velocity to zero if no updates received for 3 seconds
     uint32_t tnow = millis();
     if (tnow - vel_update_time_ms > GUIDED_POSVEL_TIMEOUT_MS && !pos_control.get_desired_velocity().is_zero()) {
-        pos_control.set_desired_velocity(Vector3f(0,0,0));
+        guided_set_desired_velocity_with_accel_and_fence_limits(Vector3f(0.0f,0.0f,0.0f));
+    } else {
+        guided_set_desired_velocity_with_accel_and_fence_limits(guided_vel_target_cms);
     }
 
     // call velocity controller which includes z axis controller
@@ -493,8 +494,8 @@ void Copter::guided_posvel_control_run()
 
     // set velocity to zero if no updates received for 3 seconds
     uint32_t tnow = millis();
-    if (tnow - posvel_update_time_ms > GUIDED_POSVEL_TIMEOUT_MS && !posvel_vel_target_cms.is_zero()) {
-        posvel_vel_target_cms.zero();
+    if (tnow - posvel_update_time_ms > GUIDED_POSVEL_TIMEOUT_MS && !guided_vel_target_cms.is_zero()) {
+        guided_vel_target_cms.zero();
     }
 
     // calculate dt
@@ -508,11 +509,11 @@ void Copter::guided_posvel_control_run()
         }
 
         // advance position target using velocity target
-        posvel_pos_target_cm += posvel_vel_target_cms * dt;
+        guided_pos_target_cm += guided_vel_target_cms * dt;
 
         // send position and velocity targets to position controller
-        pos_control.set_pos_target(posvel_pos_target_cm);
-        pos_control.set_desired_velocity_xy(posvel_vel_target_cms.x, posvel_vel_target_cms.y);
+        pos_control.set_pos_target(guided_pos_target_cm);
+        pos_control.set_desired_velocity_xy(guided_vel_target_cms.x, guided_vel_target_cms.y);
 
         // run position controller
         pos_control.update_xy_controller(AC_PosControl::XY_MODE_POS_AND_VEL_FF, ekfNavVelGainScaler, false);
@@ -584,6 +585,41 @@ void Copter::guided_angle_control_run()
     // call position controller
     pos_control.set_alt_target_from_climb_rate_ff(climb_rate_cms, G_Dt, false);
     pos_control.update_z_controller();
+}
+
+// helper function to update position controller's desired velocity while respecting acceleration limits
+void Copter::guided_set_desired_velocity_with_accel_and_fence_limits(const Vector3f& vel_des)
+{
+    // get current desired velocity
+    Vector3f curr_vel_des = pos_control.get_desired_velocity();
+
+    // exit immediately if already equal
+    if (curr_vel_des == vel_des) {
+        return;
+    }
+
+    // get change in desired velocity
+    Vector3f vel_delta = vel_des - curr_vel_des;
+
+    // limit xy change
+    float vel_delta_xy = safe_sqrt(sq(vel_delta.x)+sq(vel_delta.y));
+    float vel_delta_xy_max = G_Dt * pos_control.get_accel_xy();
+    float ratio_xy = 1.0f;
+    if (!is_zero(vel_delta_xy) && (vel_delta_xy > vel_delta_xy_max)) {
+        ratio_xy = vel_delta_xy_max / vel_delta_xy;
+    }
+    curr_vel_des.x += (vel_delta.x * ratio_xy);
+    curr_vel_des.y += (vel_delta.y * ratio_xy);
+
+    // limit z change
+    float vel_delta_z_max = G_Dt * pos_control.get_accel_z();
+    curr_vel_des.z += constrain_float(vel_delta.z, -vel_delta_z_max, vel_delta_z_max);
+
+    // limit the velocity to prevent fence violations
+    avoid.adjust_velocity(pos_control.get_pos_xy_kP(), pos_control.get_accel_xy(), curr_vel_des);
+
+    // update position controller with new target
+    pos_control.set_desired_velocity(curr_vel_des);
 }
 
 // Guided Limit code

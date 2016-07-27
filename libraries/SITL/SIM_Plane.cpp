@@ -36,6 +36,9 @@ Plane::Plane(const char *home_str, const char *frame_str) :
     thrust_scale = (mass * GRAVITY_MSS) / hover_throttle;
     frame_height = 0.1f;
 
+    if (strstr(frame_str, "-heavy")) {
+        mass = 8;
+    }
     if (strstr(frame_str, "-revthrust")) {
         reverse_thrust = true;
     }
@@ -43,6 +46,14 @@ Plane::Plane(const char *home_str, const char *frame_str) :
         elevons = true;
     } else if (strstr(frame_str, "-vtail")) {
         vtail = true;
+    }
+    if (strstr(frame_str, "-elevrev")) {
+        reverse_elevator_rudder = true;
+    }
+
+    ground_behavior = GROUND_BEHAVIOR_FWD_ONLY;
+    if (strstr(frame_str, "-ice")) {
+        ice_engine = true;
     }
 }
 
@@ -200,6 +211,10 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
     float elevator = (input.servos[1]-1500)/500.0f;
     float rudder   = (input.servos[3]-1500)/500.0f;
     float throttle;
+    if (reverse_elevator_rudder) {
+        elevator = -elevator;
+        rudder = -rudder;
+    }
     if (elevons) {
         // fake an elevon plane
         float ch1 = aileron;
@@ -224,6 +239,10 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
     
     float thrust     = throttle;
 
+    if (ice_engine) {
+        thrust = icengine.update(input);
+    }
+
     // calculate angle of attack
     angle_of_attack = atan2f(velocity_air_bf.z, velocity_air_bf.x);
     beta = atan2f(velocity_air_bf.y,velocity_air_bf.x);
@@ -231,6 +250,9 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
     Vector3f force = getForce(aileron, elevator, rudder);
     rot_accel = getTorque(aileron, elevator, rudder, force);
 
+    // simulate engine RPM
+    rpm1 = thrust * 7000;
+    
     // scale thrust to newtons
     thrust *= thrust_scale;
 
@@ -240,6 +262,12 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
     // add some noise
     if (thrust_scale > 0) {
         add_noise(fabsf(thrust) / thrust_scale);
+    }
+
+    if (on_ground(position)) {
+        // add some ground friction
+        Vector3f vel_body = dcm.transposed() * velocity_ef;
+        accel_body.x -= vel_body.x * 0.3f;
     }
 }
     

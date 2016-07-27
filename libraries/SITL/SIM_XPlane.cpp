@@ -105,7 +105,8 @@ bool XPlane::receive_data(void)
     const uint64_t required_mask = (one<<Times | one<<LatLonAlt | one<<Speed | one<<PitchRollHeading |
                                     one<<LocVelDistTraveled | one<<AngularVelocities | one<<Gload |
                                     one << Joystick1 | one << ThrottleCommand | one << Trim |
-                                    one << PropPitch | one << EngineRPM | one << PropRPM | one << Generator);
+                                    one << PropPitch | one << EngineRPM | one << PropRPM | one << Generator |
+                                    one << Mixture);
     Location loc {};
     Vector3f pos;
     uint32_t wait_time_ms = 1;
@@ -172,10 +173,16 @@ bool XPlane::receive_data(void)
             break;
 
         case AoA:
-        case Trim:
             // ignored
             break;
 
+        case Trim:
+            if (heli_frame) {
+                // use flaps for collective as no direct collective data input
+                rcin[2] = data[4];
+            }
+            break;
+            
         case PitchRollHeading: {
             float roll, pitch, yaw;
             pitch = radians(data[1]);
@@ -218,10 +225,7 @@ bool XPlane::receive_data(void)
             break;
 
         case ThrottleCommand: {
-            if (heli_frame) {
-                // on helis we setup the joystick to use "throttle2" for collective input
-                rcin[2] = data[2];
-            } else {
+            if (!heli_frame) {
                 /* getting joystick throttle input is very weird. The
                  * problem is that XPlane sends the ThrottleCommand packet
                  * both for joystick throttle input and for throttle that
@@ -259,10 +263,20 @@ bool XPlane::receive_data(void)
             break;
 
         case Generator:
+            /*
+              in order to get interlock switch on helis we map the
+              "generator1 on/off" function of XPlane 10 to channel 8.
+             */
             rcin_chan_count = 8;
             rcin[7] = data[1];
             break;
-            
+
+        case Mixture:
+            // map channel 6 and 7 from Mixture3 and Mixture4 for extra channels
+            rcin_chan_count = MAX(7, rcin_chan_count);
+            rcin[5] = data[3];
+            rcin[6] = data[4];
+            break;
         }
         len -= pkt_len;
         p += pkt_len;
@@ -403,9 +417,13 @@ void XPlane::send_data(const struct sitl_input &input)
         // and send throttle from channel 8
         throttle = (input.servos[7]-1000)/1000.0;
 
+        // allow for extra throttle outputs for special aircraft
+        float throttle2 = (input.servos[5]-1000)/1000.0;
+        float throttle3 = (input.servos[6]-1000)/1000.0;
+
         d.code = PropPitch;
         d.data[0] = collective;
-        d.data[1] = -rudder*10; // reverse sense of rudder, 10 degrees pitch range
+        d.data[1] = -rudder*15; // reverse sense of rudder, 15 degrees pitch range
         d.data[2] = 0;
         d.data[3] = 0;
         d.data[4] = 0;
@@ -414,8 +432,8 @@ void XPlane::send_data(const struct sitl_input &input)
         d.code = ThrottleCommand;
         d.data[0] = throttle;
         d.data[1] = throttle;
-        d.data[2] = throttle;
-        d.data[3] = throttle;
+        d.data[2] = throttle2;
+        d.data[3] = throttle3;
         d.data[4] = 0;
         socket_out.send(&d, sizeof(d));
     }

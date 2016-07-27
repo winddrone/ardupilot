@@ -20,6 +20,7 @@
 #pragma once
 
 #include "SIM_Aircraft.h"
+#include "SIM_ICEngine.h"
 
 namespace SITL {
 
@@ -94,6 +95,10 @@ protected:
     bool reverse_thrust;
     bool elevons;
     bool vtail;
+    bool reverse_elevator_rudder;
+    bool ice_engine;
+
+    ICEngine icengine{2, 14, 12, 13, 100};
 
     float liftCoeff(float alpha) const;
     float dragCoeff(float alpha) const;
