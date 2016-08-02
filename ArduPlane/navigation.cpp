@@ -230,14 +230,14 @@ void Plane::update_eight_sphere()
     switch(eight_sphere.segment)
     {
     case 0: { //left turning circle
-        hal.console->println("case 0");
+        //hal.console->println("case 0");
 
         nav_controller->update_loiter_3d(home, eight_sphere.circle_center_left, intersection.circle_radius, M_PI/2, eight_sphere.slope, eight_sphere.omega, eight_sphere.sigma, intersection.distance_cm, 1, eight_sphere.rot_matrix_left, eight_sphere.segment, intersection.height);
 
         int32_t nav_bearing = nav_controller->nav_bearing_cd();
 
-        hal.console->println("nav_bearing");
-        hal.console->println(nav_bearing);
+        //hal.console->println("nav_bearing");
+        //hal.console->println(nav_bearing);
         /*hal.console->println("radius");
         hal.console->println(intersection.circle_radius);
         hal.console->println("slope");
@@ -258,12 +258,12 @@ void Plane::update_eight_sphere()
     }
 
     case 1: {
-        hal.console->println("case 1");
+        //hal.console->println("case 1");
         nav_controller->update_loiter_3d(home, home, intersection.sphere_radius_cm/100.0f, eight_sphere.cross_angle, M_PI/2, eight_sphere.omega, eight_sphere.sigma, 0, 1, eight_sphere.rot_matrix_cross1, eight_sphere.segment, intersection.height);
 
         int32_t nav_bearing = wrap_180_cd(nav_controller->nav_bearing_cd());
-        hal.console->println("nav_bearing");
-        hal.console->println(nav_bearing);
+        //hal.console->println("nav_bearing");
+        //hal.console->println(nav_bearing);
 
         if(nav_bearing >= RadiansToCentiDegrees(eight_sphere.arc_length_angle)) {
             eight_sphere.segment++;
@@ -273,13 +273,13 @@ void Plane::update_eight_sphere()
     }
 
     case 2: { // right turning circle
-        hal.console->println("case 2");
+        //hal.console->println("case 2");
 
         nav_controller->update_loiter_3d(home, eight_sphere.circle_center_right, intersection.circle_radius, -M_PI/2, eight_sphere.slope, eight_sphere.omega, eight_sphere.sigma, intersection.distance_cm, -1, eight_sphere.rot_matrix_right, eight_sphere.segment, intersection.height);
 
         int32_t nav_bearing = nav_controller->nav_bearing_cd();
-        hal.console->println("nav_bearing");
-        hal.console->println(nav_bearing);
+        //hal.console->println("nav_bearing");
+        //hal.console->println(nav_bearing);
 
         // use 9150 instead of 9000 to overcome delay
         if(nav_bearing <= 9000 - RadiansToCentiDegrees(eight_sphere.sector_angle) && nav_bearing > 0) {
@@ -290,12 +290,12 @@ void Plane::update_eight_sphere()
     }
 
     case 3: {
-        hal.console->println("case 3");
+        //hal.console->println("case 3");
         nav_controller->update_loiter_3d(home, home, intersection.sphere_radius_cm/100.0f, -eight_sphere.cross_angle, M_PI/2, eight_sphere.omega, eight_sphere.sigma, 0, -1, eight_sphere.rot_matrix_cross2, eight_sphere.segment, intersection.height);
 
         int32_t nav_bearing = wrap_180_cd(nav_controller->nav_bearing_cd());
-        hal.console->println("nav_bearing");
-        hal.console->println(nav_bearing);
+        //hal.console->println("nav_bearing");
+        //hal.console->println(nav_bearing);
 
         if(nav_bearing <= -RadiansToCentiDegrees(eight_sphere.arc_length_angle)) {
             eight_sphere.segment++;

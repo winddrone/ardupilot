@@ -926,12 +926,12 @@ void Plane::do_loiter_3d()
     float LOCATION_SCALING_FACTOR_INV = 89.83204953368922;
 
     intersection.psi_plane = radians(0);
-    intersection.theta_plane = radians(20);
+    intersection.theta_plane = radians(0);
 
     eight_sphere.omega = radians(0);
     eight_sphere.sigma = radians(0);
 
-    intersection.distance_cm = 39300;
+    intersection.distance_cm = 30900;
 
     intersection.sphere_radius_cm = 50000;
 
@@ -987,12 +987,12 @@ void Plane::do_eight_sphere()
     float LOCATION_SCALING_FACTOR_INV = 89.83204953368922;
 
     // define the shape of eight
-    eight_sphere.cross_angle = radians(30);
+    eight_sphere.cross_angle = radians(20);
     eight_sphere.arc_length_angle = radians(20);
 
     // orientation of eight
     eight_sphere.omega = radians(0);
-    eight_sphere.sigma = radians(-45);
+    eight_sphere.sigma = radians(-60);
 
     intersection.sphere_radius_cm = 50000;
 

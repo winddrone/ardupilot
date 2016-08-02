@@ -540,11 +540,10 @@
 					</sum>
 					<value>0.5</value>
 				</pow>	
-				<value>450</value>
+				<value>490</value>
 			</difference>
 			<property>position/tether-strength</property>  
 			</product>
-		<!--	<property>position/tether-strength</property> -->
 			</function>
 			<location unit="IN">
 				<x>37.4</x>

@@ -627,7 +627,7 @@ void AP_TECS::_update_throttle(void)
         // Use the demanded rate of change of total energy as the feed-forward demand, but add
         // additional component which scales with (1/cos(bank angle) - 1) to compensate for induced
         // drag increase during turns.
-        float cosPhi = sqrtf((rotMat.a.y*rotMat.a.y) + (rotMat.b.y*rotMat.b.y));
+        float cosPhi = sqrtf((rotMat.a.x*rotMat.a.x) + (rotMat.b.x*rotMat.b.x));
         STEdot_dem = STEdot_dem + _rollComp * (1.0f/constrain_float(cosPhi * cosPhi , 0.1f, 1.0f) - 1.0f);
         ff_throttle = nomThr + STEdot_dem / (_STEdot_max - _STEdot_min) * (_THRmaxf - _THRminf);
 
@@ -764,17 +764,19 @@ void AP_TECS::_detect_bad_descent(void)
 
 void AP_TECS::_update_pitch(int32_t segment)
 {
-	// my code, try to implement force control
+/*	// my code, try to implement force control
+	float airspeed = _ahrs.get_airspeed()->get_airspeed();
+	float Lift = 0.5*0.25*airspeed*airspeed;
 	struct Location _current_loc;
 	 _ahrs.get_position(_current_loc);
 	Vector3f pos_vec = location_diff_3d(_ahrs.get_home(),_current_loc);
-	float gain = 0;
-	float diff_tether_length = 0;
+	float force_gain = 0;
+	float force_diff = 0;
 
 	if(pos_vec.length() > 450) {
-		diff_tether_length = 500 - pos_vec.length();
-		gain = 100;
-	}
+		force_diff = Lift - 4.44822*0.4*(pos_vec.length()-450);
+		force_gain = 1;
+	}*/
 
     // Calculate Speed/Height Control Weighting
     // This is used to determine how the pitch control prioritises speed and height control
@@ -893,9 +895,8 @@ void AP_TECS::_update_pitch(int32_t segment)
         _pitch_dem = _last_pitch_dem - ptchRateIncr;
     } */
 
-    //pitch correction for tetherforce
-    if(pos_vec.length() > 450)
-    _pitch_dem += gain * diff_tether_length - 50*_climb_rate;
+    // my extra code for tether strength
+    //_pitch_dem = _pitch_dem + force_gain*force_diff;
 
     // re-constrain pitch demand
     _pitch_dem = constrain_float(_pitch_dem, _PITCHminf, _PITCHmaxf);
