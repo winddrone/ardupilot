@@ -36,6 +36,7 @@ private:
     AP_Int16 _imax;
 	uint32_t _last_t;
 	float _last_out;
+	uint32_t counter;
 	float _last_rate_hp_out;
 	float _last_rate_hp_in;
 	float _K_D_last;

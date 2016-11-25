@@ -19,6 +19,8 @@
 
 #include <AP_HAL/AP_HAL.h>
 #include "AP_PitchController.h"
+#include <fstream> // spaeter loeschen
+using namespace std; // spaeter loeschen
 
 extern const AP_HAL::HAL& hal;
 
@@ -189,6 +191,7 @@ int32_t AP_PitchController::_get_rate_out(float desired_rate, float scaler, bool
 	_last_out = _pid_info.D + _pid_info.FF + _pid_info.P;
     _pid_info.desired = desired_rate;
 
+
     if (autotune.running && aspeed > aparm.airspeed_min) {
         // let autotune have a go at the values 
         // Note that we don't pass the integrator component so we get
@@ -201,6 +204,8 @@ int32_t AP_PitchController::_get_rate_out(float desired_rate, float scaler, bool
     }
 
 	_last_out += _pid_info.I;
+
+
 
     /*
       when we are past the users defined roll limit for the
@@ -221,7 +226,24 @@ int32_t AP_PitchController::_get_rate_out(float desired_rate, float scaler, bool
         float roll_prop = (roll_wrapped - (aparm.roll_limit_cd+500)) / (float)(9000 - aparm.roll_limit_cd);
         _last_out *= (1 - roll_prop);
     }
-    
+
+    //my code %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    float airspeed = _ahrs.get_airspeed()->get_airspeed();
+
+    if(airspeed > 30){
+    	_last_out += 0.5*(airspeed - 30);
+    }
+
+    counter++;
+    counter = counter%5;
+    if (counter == 1){
+    	fstream f;
+    	f.open("GPS3D.txt", ios::out | ios::app);
+    	f << _last_out << " ";
+    	f.close();
+    }
+    //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 	// Convert to centi-degrees and constrain
 	return constrain_float(_last_out * 100, -4500, 4500);
 }

@@ -627,7 +627,7 @@ void AP_TECS::_update_throttle(void)
         // Use the demanded rate of change of total energy as the feed-forward demand, but add
         // additional component which scales with (1/cos(bank angle) - 1) to compensate for induced
         // drag increase during turns.
-        float cosPhi = sqrtf((rotMat.a.x*rotMat.a.x) + (rotMat.b.x*rotMat.b.x));
+        float cosPhi = sqrtf((rotMat.a.y*rotMat.a.y) + (rotMat.b.y*rotMat.b.y));
         STEdot_dem = STEdot_dem + _rollComp * (1.0f/constrain_float(cosPhi * cosPhi , 0.1f, 1.0f) - 1.0f);
         ff_throttle = nomThr + STEdot_dem / (_STEdot_max - _STEdot_min) * (_THRmaxf - _THRminf);
 
@@ -681,6 +681,16 @@ void AP_TECS::_update_throttle(void)
             _throttle_dem = ff_throttle;
         }
     }
+
+    // my code, try to implement throttle control%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    	struct Location _current_loc;
+    	 _ahrs.get_position(_current_loc);
+    	Vector3f pos_vec = location_diff_3d(_ahrs.get_home(),_current_loc);
+    	if(pos_vec.length() > 400) {
+    		_throttle_dem =_throttle_dem/2/(pos_vec.length()-400);
+    	}
+    //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     // Constrain throttle demand
     _throttle_dem = constrain_float(_throttle_dem, _THRminf, _THRmaxf);

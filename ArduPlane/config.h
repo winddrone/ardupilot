@@ -367,6 +367,13 @@
  # define PX4IO_OVERRIDE_PWM 1750
 #endif
 
+#ifndef OMEGA_WIND_DEFAULT
+ # define  OMEGA_WIND_DEFAULT 0
+#endif
+
+#ifndef SIGMA_WIND_DEFAULT
+ # define  SIGMA_WIND_DEFAULT 0
+#endif
 //////////////////////////////////////////////////////////////////////////////
 // Developer Items
 //

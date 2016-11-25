@@ -406,6 +406,22 @@ const AP_Param::Info Plane::var_info[] = {
     // @Increment: 1
     // @User: Standard
     GSCALAR(rtl_radius,             "RTL_RADIUS",  0),
+
+	// @Param: OMEGA
+	// @DisplayName: Orientation of figure-8 pattern
+	// @Description: Orient the 8 to the wind direction. Omega = 0 sets the crossaxis from west to east.
+	// @Range: 0 360
+	// @Increment: 1
+	// @User: Advanced
+	GSCALAR(omega_wind,                   "OMEGA_WIND",  OMEGA_WIND_DEFAULT),
+
+	// @Param: SIGMA
+	// @DisplayName: Slope of figure-8 pattern
+	// @Description: Tilts the 8 to the wind direction. Sigma = 0 sets the 8 on top of the sphere
+	// @Range: -90 90
+	// @Increment: 1
+	// @User: Advanced
+	GSCALAR(sigma_wind,                   "SIGMA_WIND",  SIGMA_WIND_DEFAULT),
     
 #if GEOFENCE_ENABLED == ENABLED
     // @Param: FENCE_ACTION

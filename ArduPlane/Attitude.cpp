@@ -429,7 +429,9 @@ void Plane::calc_throttle()
         return;
     }
 
+
     int32_t commanded_throttle = SpdHgt_Controller->get_throttle_demand();
+    //if(control_mode == EIGHT_SPHERE) commanded_throttle = 0;
 
     // Received an external msg that guides throttle in the last 3 seconds?
     if (control_mode == GUIDED &&
@@ -439,6 +441,7 @@ void Plane::calc_throttle()
     }
 
     channel_throttle->set_servo_out(commanded_throttle);
+
 }
 
 /*****************************************

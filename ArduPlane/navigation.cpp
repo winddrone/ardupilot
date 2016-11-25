@@ -226,6 +226,15 @@ void Plane::update_loiter_3d()
 
 void Plane::update_eight_sphere()
 {
+//	float arspd = ahrs.get_airspeed()->get_airspeed();
+	float delta_r = 0;
+	/*if(arspd > 30) {
+		delta_r = 0.5*(arspd - 30);
+	}*/
+
+	if(g.omega_wind != eight_sphere.omega_old) {
+		do_eight_sphere();
+	}
 
     switch(eight_sphere.segment)
     {
@@ -259,7 +268,7 @@ void Plane::update_eight_sphere()
 
     case 1: {
         //hal.console->println("case 1");
-        nav_controller->update_loiter_3d(home, home, intersection.sphere_radius_cm/100.0f, eight_sphere.cross_angle, M_PI/2, eight_sphere.omega, eight_sphere.sigma, 0, 1, eight_sphere.rot_matrix_cross1, eight_sphere.segment, intersection.height);
+        nav_controller->update_loiter_3d(home, home, intersection.sphere_radius_cm/100.0f+delta_r, eight_sphere.cross_angle, M_PI/2, eight_sphere.omega, eight_sphere.sigma, 0, 1, eight_sphere.rot_matrix_cross1, eight_sphere.segment, intersection.height);
 
         int32_t nav_bearing = wrap_180_cd(nav_controller->nav_bearing_cd());
         //hal.console->println("nav_bearing");
@@ -291,7 +300,7 @@ void Plane::update_eight_sphere()
 
     case 3: {
         //hal.console->println("case 3");
-        nav_controller->update_loiter_3d(home, home, intersection.sphere_radius_cm/100.0f, -eight_sphere.cross_angle, M_PI/2, eight_sphere.omega, eight_sphere.sigma, 0, -1, eight_sphere.rot_matrix_cross2, eight_sphere.segment, intersection.height);
+        nav_controller->update_loiter_3d(home, home, intersection.sphere_radius_cm/100.0f+delta_r, -eight_sphere.cross_angle, M_PI/2, eight_sphere.omega, eight_sphere.sigma, 0, -1, eight_sphere.rot_matrix_cross2, eight_sphere.segment, intersection.height);
 
         int32_t nav_bearing = wrap_180_cd(nav_controller->nav_bearing_cd());
         //hal.console->println("nav_bearing");

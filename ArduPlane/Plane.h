@@ -105,8 +105,8 @@
 #include <SITL/SITL.h>
 #endif
 
-#include <fstream> // spaeter loeschen
-using namespace std; // spaeter loeschen
+//#include <fstream> // spaeter loeschen
+//using namespace std; // spaeter loeschen
 
 /*
   a plane specific arming class
@@ -732,6 +732,7 @@ private:
     struct {
 
         float omega;              // rotation of eight around e_z in ef, omega equals winddirection
+        float omega_old;			// check if omega has changed during flight
         float sigma;                // rotation of eight around e_y'
 
         float cross_angle;       // half angle of crossing path

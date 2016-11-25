@@ -48,6 +48,7 @@ private:
     AP_AutoTune autotune;
 	uint32_t _last_t;
 	float _last_out;
+	uint32_t counter;
 
     DataFlash_Class::PID_Info _pid_info;
 

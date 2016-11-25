@@ -560,6 +560,23 @@ void Plane::handle_auto_mode(void)
  */
 void Plane::update_flight_mode(void)
 {
+/*	// just to track the position and save them in flight_path.txt
+	struct Location _current_loc;
+	struct Location anchor;
+
+	// Get current position
+	ahrs.get_position(_current_loc);
+	anchor = ahrs.get_home();
+
+	//position vector or rather tether
+	Vector3f _position_vec_ef = location_diff_3d(anchor, _current_loc);
+
+	fstream f;
+	f.open("flight_path.txt", ios::out | ios::app);
+	f << _position_vec_ef.x << " "<< _position_vec_ef.y << " " <<  -_position_vec_ef.z << endl;
+	f.close();*/
+
+
     enum FlightMode effective_mode = control_mode;
     if (control_mode == AUTO && g.auto_fbw_steer == 42) {
         effective_mode = FLY_BY_WIRE_A;
@@ -605,7 +622,7 @@ void Plane::update_flight_mode(void)
         calc_nav_pitch();
         calc_throttle();
         break;
-        
+
     case TRAINING: {
         training_manual_roll = false;
         training_manual_pitch = false;

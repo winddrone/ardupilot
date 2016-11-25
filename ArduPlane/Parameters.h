@@ -51,6 +51,9 @@ public:
         k_param_num_resets,
         k_param_NavEKF2,
 
+		k_param_omega_wind,			// orientation of figure-8 pattern
+		k_param_sigma_wind,			// slope of figure-8 pattern
+
         // Misc
         //
         k_param_auto_trim      = 10,
@@ -351,6 +354,9 @@ public:
 
     AP_Int16 format_version;
     AP_Int8 software_type;
+
+    AP_Float omega_wind;
+    AP_Float sigma_wind;
 
     // Telemetry control
     //
