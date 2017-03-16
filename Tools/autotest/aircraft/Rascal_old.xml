@@ -532,12 +532,9 @@
 						<property>position/distance-from-start-mag-mt</property>
 						<value>2.0</value>
 						</pow>
-						<pow>
-							<product>
-								<property>position/h-agl-ft</property>
-								<value>0.3048</value>
-							</product>
-							<value>2.0</value>
+						<pow>	
+						<property>position/distance-from-start-alt-mt</property>
+						<value>2.0</value>
 						</pow>
 
 					</sum>
@@ -554,18 +551,18 @@
 				<y>0</y>
 				<z>0</z>
 			</location> 
-			<xdirection>				
+		<!--	<xdirection>				
 				<property>position/distance-from-start-lat-mt</property>
-			<!--	<value>0</value>-->
+			<!-	<value>0</value>-
 			</xdirection>
 			<ydirection>				
 				<property>position/distance-from-start-lon-mt</property>
-			<!--	<value>1</value>-->
+			<!-	<value>1</value>-
 			</ydirection>
 			<zdirection>				
 				<property>position/distance-from-start-alt-mt</property>
-			<!--	<value>0</value>-->
-			</zdirection>
+			<!-	<value>0</value>-
+			</zdirection> -->
 
 
 		</force>
