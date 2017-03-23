@@ -782,10 +782,10 @@ void AP_L1_Control::update_loiter_3d(const struct Location &anchor, const struct
     //float xtrackErrCirc = A_air_ef_2d.length() - radius*cos_slope/sqrtf(1-sin_slope*sin_slope*sin_bearing*sin_bearing);    // distance from circle projection (ellipse)
     //float v_unit_ef_x = loiter_direction*(-cos_slope*cos_orient*A_air_unit.y - sin_orient*A_air_unit.x); //M_ep * tangentialvector
     //float v_unit_ef_y = loiter_direction*(-cos_slope*sin_orient*A_air_unit.y + cos_orient*A_air_unit.x);
-    float v_unit_ef_x = loiter_direction*(- A_air_unit.y*(cos_w*cos_sigma*cos_theta*cos_psi + sin_w*cos_theta*sin_psi + cos_w*sin_sigma*sin_theta)
-    									  + A_air_unit.x*(-cos_w*cos_sigma*sin_psi + sin_w*cos_psi));   //M_ep * tangent vector
-	float v_unit_ef_y = loiter_direction*(- A_air_unit.y*(-sin_w*cos_sigma*cos_theta*cos_psi + cos_w*cos_theta*sin_psi - sin_w*sin_sigma*sin_theta)
-										  + A_air_unit.x*(sin_w*cos_sigma*sin_psi + cos_w*cos_psi));
+    float v_unit_ef_x = loiter_direction*(- A_air_unit.y*(cos_w*cos_sigma*cos_theta*cos_psi - sin_w*cos_theta*sin_psi - cos_w*sin_sigma*sin_theta)
+    									  + A_air_unit.x*(-cos_w*cos_sigma*sin_psi - sin_w*cos_psi));   //M_ep * tangent vector
+	float v_unit_ef_y = loiter_direction*(- A_air_unit.y*(sin_w*cos_sigma*cos_theta*cos_psi + cos_w*cos_theta*sin_psi - sin_w*sin_sigma*sin_theta)
+										  + A_air_unit.x*(-sin_w*cos_sigma*sin_psi + cos_w*cos_psi));
     float chi = atan2f(v_unit_ef_y, v_unit_ef_x);
     float sin_chi = sinf(chi);
     float cos_chi = cosf(chi);
@@ -801,13 +801,13 @@ void AP_L1_Control::update_loiter_3d(const struct Location &anchor, const struct
     //float xtrackVelCirc = -ltrackVelCap * cos_slope; // projection to xy plane of radial outbound velocity - reuse previous radial inbound velocity
     int8_t sign;
     //if((-sin_chi*cos_slope*cos_orient + cos_chi*cos_slope*sin_orient)*A_air_diff_pf.x +(sin_chi*sin_orient+cos_chi*cos_orient)*A_air_diff_pf.y +(-sin_chi*sin_slope*cos_orient+cos_chi*sin_slope*sin_orient)*A_air_diff_pf.z < 0) sign = -1;  //y componet of a_air_diff_kf
-    if (-sin_chi*(A_air_diff_pf.x * (cos_w*cos_sigma*cos_theta*cos_psi + sin_w*cos_theta*sin_psi + cos_w*sin_sigma*sin_theta)
-    			+ A_air_diff_pf.y * (-cos_w*cos_sigma*sin_psi + sin_w*cos_psi)
-				+ A_air_diff_pf.z * (cos_w*cos_sigma*sin_theta*cos_psi + sin_w*sin_theta*sin_psi - cos_w*sin_sigma*cos_theta))
+    if (-sin_chi*(A_air_diff_pf.x * (cos_w*cos_sigma*cos_theta*cos_psi - sin_w*cos_theta*sin_psi - cos_w*sin_sigma*sin_theta)
+    			+ A_air_diff_pf.y * (-cos_w*cos_sigma*sin_psi - sin_w*cos_psi)
+				+ A_air_diff_pf.z * (cos_w*cos_sigma*sin_theta*cos_psi - sin_w*sin_theta*sin_psi + cos_w*sin_sigma*cos_theta))
 
-    	+cos_chi*(A_air_diff_pf.x * (-sin_w*cos_sigma*cos_theta*cos_psi + cos_w*cos_theta*sin_psi - sin_w*sin_sigma*sin_theta)
-    			+ A_air_diff_pf.y * (sin_w*cos_sigma*sin_psi + cos_w*cos_psi)
-				+ A_air_diff_pf.z * (-sin_w*cos_sigma*sin_theta*cos_psi + cos_w*sin_theta*sin_psi + sin_w*sin_sigma*cos_theta))
+    	+cos_chi*(A_air_diff_pf.x * (sin_w*cos_sigma*cos_theta*cos_psi + cos_w*cos_theta*sin_psi - sin_w*sin_sigma*sin_theta)
+    			+ A_air_diff_pf.y * (-sin_w*cos_sigma*sin_psi + cos_w*cos_psi)
+				+ A_air_diff_pf.z * (sin_w*cos_sigma*sin_theta*cos_psi + cos_w*sin_theta*sin_psi + sin_w*sin_sigma*cos_theta))
 				< 0) //y Komponente of A_air_diff im bahnfesten KS
     {
     	sign = -1;
@@ -867,11 +867,11 @@ void AP_L1_Control::update_loiter_3d(const struct Location &anchor, const struct
     float latAccDemCircCtr;
     if (segment % 2 == 0) {
     	latAccDemCircCtr = velTangent * velTangent / MAX(0.5 * radius, radius)
-    		* cos_sigma*cos_theta / sqrtf(A_air_unit.y*A_air_unit.y*cos_theta*cos_theta + (A_air_unit.y*sin_sigma*sin_theta + A_air_unit.x*cos_sigma)*(A_air_unit.y*sin_sigma*sin_theta + A_air_unit.x*cos_sigma));
+    		* cos_sigma*cos_theta / sqrtf(A_air_unit.y*A_air_unit.y*cos_theta*cos_theta + (-A_air_unit.y*sin_sigma*sin_theta + A_air_unit.x*cos_sigma)*(-A_air_unit.y*sin_sigma*sin_theta + A_air_unit.x*cos_sigma));
     }
     else {
     	latAccDemCircCtr = velTangent * velTangent / MAX(0.5 * radius, radius)
-    	    		* sin_sigma*cos_psi / sqrtf(A_air_unit.x*A_air_unit.x*cos_psi*cos_psi + (A_air_unit.x*cos_sigma*sin_psi + A_air_unit.y*sin_sigma)*(A_air_unit.x*cos_sigma*sin_psi + A_air_unit.y*sin_sigma));
+    	    		* (-sin_sigma)*cos_psi / sqrtf(A_air_unit.x*A_air_unit.x*cos_psi*cos_psi + (A_air_unit.x*cos_sigma*sin_psi - A_air_unit.y*sin_sigma)*(A_air_unit.x*cos_sigma*sin_psi - A_air_unit.y*sin_sigma));
     }
 
     // correction for latAccDemCircCtr because of tether tension

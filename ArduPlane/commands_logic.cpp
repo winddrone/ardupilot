@@ -996,7 +996,7 @@ void Plane::do_eight_sphere()
     eight_sphere.omega_old = g.omega_wind;
     eight_sphere.sigma = radians(g.sigma_wind);
 
-    intersection.sphere_radius_cm = 40000;
+    intersection.sphere_radius_cm = 12000;
 
     float cos_cross = cosf(eight_sphere.cross_angle);
     float cos_arc = cosf(eight_sphere.arc_length_angle);
@@ -1030,7 +1030,7 @@ void Plane::do_eight_sphere()
     eight_sphere.secant = 2*intersection.sphere_radius_cm/100*sin_cross*sin_arc;
     eight_sphere.sector_angle = acosf(eight_sphere.secant/(2*intersection.circle_radius));
 
-    eight_sphere.normal_vec.x = -sin_omega*sin_slope + cos_omega*sin_sigma*cos_slope;		// product of rot_8_matrix times vector (0, -sin_slope, -cos_slope)^T
+    eight_sphere.normal_vec.x = sin_omega*sin_slope - cos_omega*sin_sigma*cos_slope;		// product of rot_8_matrix times vector (0, -sin_slope, -cos_slope)^T
     eight_sphere.normal_vec.y = -cos_omega*sin_slope - sin_omega*sin_sigma*cos_slope;		// normal_vec of left turning circle
     eight_sphere.normal_vec.z = -cos_sigma*cos_slope;
 
@@ -1039,7 +1039,7 @@ void Plane::do_eight_sphere()
     eight_sphere.circle_center_left.lng += intersection.distance_cm/100.0f * eight_sphere.normal_vec.y * LOCATION_SCALING_FACTOR_INV / longitude_scale(home);
     eight_sphere.circle_center_left.alt -= intersection.distance_cm * eight_sphere.normal_vec.z;
 
-    eight_sphere.normal_vec.x = sin_omega*sin_slope + cos_omega*sin_sigma*cos_slope;		// product of rot_8_matrix times vector (0, sin_slope, -cos_slope)^T
+    eight_sphere.normal_vec.x = -sin_omega*sin_slope - cos_omega*sin_sigma*cos_slope;		// product of rot_8_matrix times vector (0, sin_slope, -cos_slope)^T
     eight_sphere.normal_vec.y = cos_omega*sin_slope - sin_omega*sin_sigma*cos_slope;		// normal_vec of right turning circle
     eight_sphere.normal_vec.z = -cos_sigma*cos_slope;
 
@@ -1057,45 +1057,45 @@ void Plane::do_eight_sphere()
     hal.console->print("left.lng: ");
     hal.console->println( eight_sphere.circle_center_left.lng);
 
-    eight_sphere.rot_matrix_right.a.x = -sin_omega*cos_slope + cos_omega*sin_sigma*sin_slope;
+    eight_sphere.rot_matrix_right.a.x = sin_omega*cos_slope - cos_omega*sin_sigma*sin_slope;
     eight_sphere.rot_matrix_right.a.y = -cos_omega*cos_slope - sin_omega*sin_sigma*sin_slope;
     eight_sphere.rot_matrix_right.a.z = -cos_sigma*sin_slope;
     eight_sphere.rot_matrix_right.b.x = cos_omega*cos_sigma;
-    eight_sphere.rot_matrix_right.b.y = -sin_omega*cos_sigma;
-    eight_sphere.rot_matrix_right.b.z = sin_sigma;
-    eight_sphere.rot_matrix_right.c.x = -sin_omega*sin_slope - cos_omega*sin_sigma*cos_slope;
+    eight_sphere.rot_matrix_right.b.y = sin_omega*cos_sigma;
+    eight_sphere.rot_matrix_right.b.z = -sin_sigma;
+    eight_sphere.rot_matrix_right.c.x = sin_omega*sin_slope + cos_omega*sin_sigma*cos_slope;
     eight_sphere.rot_matrix_right.c.y = -cos_omega*sin_slope + sin_omega*sin_sigma*cos_slope;
     eight_sphere.rot_matrix_right.c.z = cos_sigma*cos_slope;
 
-    eight_sphere.rot_matrix_left.a.x = sin_omega*cos_slope + cos_omega*sin_sigma*sin_slope;
+    eight_sphere.rot_matrix_left.a.x = -sin_omega*cos_slope - cos_omega*sin_sigma*sin_slope;
     eight_sphere.rot_matrix_left.a.y = cos_omega*cos_slope - sin_omega*sin_sigma*sin_slope;
     eight_sphere.rot_matrix_left.a.z = -cos_sigma*sin_slope;
     eight_sphere.rot_matrix_left.b.x = -cos_omega*cos_sigma;
-    eight_sphere.rot_matrix_left.b.y = sin_omega*cos_sigma;
-    eight_sphere.rot_matrix_left.b.z = -sin_sigma;
-    eight_sphere.rot_matrix_left.c.x = sin_omega*sin_slope - cos_omega*sin_sigma*cos_slope;
+    eight_sphere.rot_matrix_left.b.y = -sin_omega*cos_sigma;
+    eight_sphere.rot_matrix_left.b.z = sin_sigma;
+    eight_sphere.rot_matrix_left.c.x = -sin_omega*sin_slope + cos_omega*sin_sigma*cos_slope;
     eight_sphere.rot_matrix_left.c.y = cos_omega*sin_slope + sin_omega*sin_sigma*cos_slope;
     eight_sphere.rot_matrix_left.c.z = cos_sigma*cos_slope;
 
-    eight_sphere.rot_matrix_cross1.a.x = cos_omega*sin_sigma;
+    eight_sphere.rot_matrix_cross1.a.x = -cos_omega*sin_sigma;
     eight_sphere.rot_matrix_cross1.a.y = -sin_omega*sin_sigma;
     eight_sphere.rot_matrix_cross1.a.z = -cos_sigma;
-    eight_sphere.rot_matrix_cross1.b.x = -cos_omega*cos_sigma*sin_cross + sin_omega*cos_cross;
-    eight_sphere.rot_matrix_cross1.b.y = sin_omega*cos_sigma*sin_cross + cos_omega*cos_cross;
-    eight_sphere.rot_matrix_cross1.b.z = -sin_sigma*sin_cross;
-    eight_sphere.rot_matrix_cross1.c.x = cos_omega*cos_sigma*cos_cross + sin_omega*sin_cross;
-    eight_sphere.rot_matrix_cross1.c.y = -sin_omega*cos_sigma*cos_cross + cos_omega*sin_cross;
-    eight_sphere.rot_matrix_cross1.c.z = sin_sigma*cos_cross;
+    eight_sphere.rot_matrix_cross1.b.x = -cos_omega*cos_sigma*sin_cross - sin_omega*cos_cross;
+    eight_sphere.rot_matrix_cross1.b.y = -sin_omega*cos_sigma*sin_cross + cos_omega*cos_cross;
+    eight_sphere.rot_matrix_cross1.b.z = sin_sigma*sin_cross;
+    eight_sphere.rot_matrix_cross1.c.x = cos_omega*cos_sigma*cos_cross - sin_omega*sin_cross;
+    eight_sphere.rot_matrix_cross1.c.y = sin_omega*cos_sigma*cos_cross + cos_omega*sin_cross;
+    eight_sphere.rot_matrix_cross1.c.z = -sin_sigma*cos_cross;
 
-    eight_sphere.rot_matrix_cross2.a.x = cos_omega*sin_sigma;
+    eight_sphere.rot_matrix_cross2.a.x = -cos_omega*sin_sigma;
     eight_sphere.rot_matrix_cross2.a.y = -sin_omega*sin_sigma;
     eight_sphere.rot_matrix_cross2.a.z = -cos_sigma;
-    eight_sphere.rot_matrix_cross2.b.x = cos_omega*cos_sigma*sin_cross + sin_omega*cos_cross;
-    eight_sphere.rot_matrix_cross2.b.y = -sin_omega*cos_sigma*sin_cross + cos_omega*cos_cross;
-    eight_sphere.rot_matrix_cross2.b.z = sin_sigma*sin_cross;
-    eight_sphere.rot_matrix_cross2.c.x = cos_omega*cos_sigma*cos_cross - sin_omega*sin_cross;
-    eight_sphere.rot_matrix_cross2.c.y = -sin_omega*cos_sigma*cos_cross - cos_omega*sin_cross;
-    eight_sphere.rot_matrix_cross2.c.z = sin_sigma*cos_cross;
+    eight_sphere.rot_matrix_cross2.b.x = cos_omega*cos_sigma*sin_cross - sin_omega*cos_cross;
+    eight_sphere.rot_matrix_cross2.b.y = sin_omega*cos_sigma*sin_cross + cos_omega*cos_cross;
+    eight_sphere.rot_matrix_cross2.b.z = -sin_sigma*sin_cross;
+    eight_sphere.rot_matrix_cross2.c.x = cos_omega*cos_sigma*cos_cross + sin_omega*sin_cross;
+    eight_sphere.rot_matrix_cross2.c.y = sin_omega*cos_sigma*cos_cross - cos_omega*sin_cross;
+    eight_sphere.rot_matrix_cross2.c.z = -sin_sigma*cos_cross;
 
     eight_sphere.segment = 1;
 
