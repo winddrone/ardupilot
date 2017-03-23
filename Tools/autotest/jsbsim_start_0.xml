@@ -2,13 +2,13 @@
 <?xml-stylesheet type="text/xsl" href="http://jsbsim.sf.net/JSBSimScript.xsl"?>
 <runscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="http://jsbsim.sf.net/JSBSimScript.xsd"
-    name="Testing Rascal">
+    name="Testing winddrone">
 
   <description>
-    test ArduPlane using Rascal and JSBSim
+    test ArduPlane using winddrone and JSBSim
   </description>
 
-  <use aircraft="Rascal" initialize="reset"/>
+  <use aircraft="winddrone" initialize="reset"/>
 
   <!-- we control the servos via the jsbsim console
        interface on TCP 5124 -->
