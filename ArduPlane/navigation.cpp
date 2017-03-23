@@ -241,7 +241,7 @@ void Plane::update_eight_sphere()
     case 0: { //left turning circle
         //hal.console->println("case 0");
 
-        nav_controller->update_loiter_3d(home, eight_sphere.circle_center_left, intersection.circle_radius, M_PI/2, eight_sphere.slope, eight_sphere.omega, eight_sphere.sigma, intersection.distance_cm, 1, eight_sphere.rot_matrix_left, eight_sphere.segment, intersection.height);
+        nav_controller->update_loiter_3d(home, eight_sphere.circle_center_left, intersection.circle_radius, M_PI/2, eight_sphere.eta, eight_sphere.omega, eight_sphere.sigma, intersection.distance_cm, 1, eight_sphere.rot_matrix_left, eight_sphere.segment, intersection.height);
 
         int32_t nav_bearing = nav_controller->nav_bearing_cd();
 
@@ -284,7 +284,7 @@ void Plane::update_eight_sphere()
     case 2: { // right turning circle
         //hal.console->println("case 2");
 
-        nav_controller->update_loiter_3d(home, eight_sphere.circle_center_right, intersection.circle_radius, -M_PI/2, eight_sphere.slope, eight_sphere.omega, eight_sphere.sigma, intersection.distance_cm, -1, eight_sphere.rot_matrix_right, eight_sphere.segment, intersection.height);
+        nav_controller->update_loiter_3d(home, eight_sphere.circle_center_right, intersection.circle_radius, -M_PI/2, eight_sphere.eta, eight_sphere.omega, eight_sphere.sigma, intersection.distance_cm, -1, eight_sphere.rot_matrix_right, eight_sphere.segment, intersection.height);
 
         int32_t nav_bearing = nav_controller->nav_bearing_cd();
         //hal.console->println("nav_bearing");

@@ -738,7 +738,7 @@ private:
         float cross_angle;       // half angle of crossing path
         float arc_length_angle;
 
-        float slope;            // angle of intersection circle
+        float eta;            // angle of intersection circle
 
         float secant;           // distance between two ending points
 
