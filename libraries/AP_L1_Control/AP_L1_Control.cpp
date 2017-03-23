@@ -790,29 +790,50 @@ void AP_L1_Control::update_loiter_3d(const struct Location &anchor, const struct
     float sin_chi = sinf(chi);
     float cos_chi = cosf(chi);
 
+    // outer normal vector in the lateral plane
+    Vector2f v_n_lat(v_unit_ef_y, -v_unit_ef_x);
+    // position vector of the aircraft relative to the center of the circle in the lateral plane
+    Vector2f v_air_lat(A_air_ef.x, A_air_ef.y);
+
+
+    // desired position vector on the circle relative to the center of the circle
     Vector3f radius_vec_pf;
     radius_vec_pf.x = radius * A_air_unit.x;
     radius_vec_pf.y = radius * A_air_unit.y;
     radius_vec_pf.z = 0;
-    float delta_height = dist/100.0f * cos_sigma*cos_theta - A_air_ef.z + Height_ef.z;  // cos_sigma*cos_theta = z component of normal_vec
-    Vector3f A_air_diff_pf = A_air_pf - radius_vec_pf;
+    //float delta_height = dist/100.0f * cos_sigma*cos_theta - A_air_ef.z + Height_ef.z;  // cos_sigma*cos_theta = z component of normal_vec
+    //Vector3f A_air_diff_pf = A_air_pf - radius_vec_pf;
+
+    // desired lateral position vector on the lateral projection of the circle (the ellipse) relative to the center of the ellipse
+    Vector3f v_ellipse_ef = M_pe.transposed()*radius_vec_pf;
+    Vector2f v_ellipse_lat(v_ellipse_ef.x, v_ellipse_ef.y);
+    // vector of the lateral deviation from current and desired position
+    Vector2f A_diff_lat = v_air_lat - v_ellipse_lat;
+
+    // sign of the deviation: +1 if aircraft is outside the circle, -1 if aircraft is inside the circle
+    float sgn = v_n_lat * A_diff_lat;
+    sgn = sgn/fabsf(sgn);
+
+
 
     float xtrackVelCirc = - sin_chi*_track_vel_ef.x + cos_chi*_track_vel_ef.y; // y Komponente von _track_vel_ef im bahnfesten Koordinatensystem
     //float xtrackVelCirc = -ltrackVelCap * cos_slope; // projection to xy plane of radial outbound velocity - reuse previous radial inbound velocity
-    int8_t sign;
-    //if((-sin_chi*cos_slope*cos_orient + cos_chi*cos_slope*sin_orient)*A_air_diff_pf.x +(sin_chi*sin_orient+cos_chi*cos_orient)*A_air_diff_pf.y +(-sin_chi*sin_slope*cos_orient+cos_chi*sin_slope*sin_orient)*A_air_diff_pf.z < 0) sign = -1;  //y componet of a_air_diff_kf
-    if (-sin_chi*(A_air_diff_pf.x * (cos_w*cos_sigma*cos_theta*cos_psi - sin_w*cos_theta*sin_psi - cos_w*sin_sigma*sin_theta)
-    			+ A_air_diff_pf.y * (-cos_w*cos_sigma*sin_psi - sin_w*cos_psi)
-				+ A_air_diff_pf.z * (cos_w*cos_sigma*sin_theta*cos_psi - sin_w*sin_theta*sin_psi + cos_w*sin_sigma*cos_theta))
+//    int8_t sign;
+//    //if((-sin_chi*cos_slope*cos_orient + cos_chi*cos_slope*sin_orient)*A_air_diff_pf.x +(sin_chi*sin_orient+cos_chi*cos_orient)*A_air_diff_pf.y +(-sin_chi*sin_slope*cos_orient+cos_chi*sin_slope*sin_orient)*A_air_diff_pf.z < 0) sign = -1;  //y componet of a_air_diff_kf
+//    if (-sin_chi*(A_air_diff_pf.x * (cos_w*cos_sigma*cos_theta*cos_psi - sin_w*cos_theta*sin_psi - cos_w*sin_sigma*sin_theta)
+//    			+ A_air_diff_pf.y * (-cos_w*cos_sigma*sin_psi - sin_w*cos_psi)
+//				+ A_air_diff_pf.z * (cos_w*cos_sigma*sin_theta*cos_psi - sin_w*sin_theta*sin_psi + cos_w*sin_sigma*cos_theta))
+//
+//    	+cos_chi*(A_air_diff_pf.x * (sin_w*cos_sigma*cos_theta*cos_psi + cos_w*cos_theta*sin_psi - sin_w*sin_sigma*sin_theta)
+//    			+ A_air_diff_pf.y * (-sin_w*cos_sigma*sin_psi + cos_w*cos_psi)
+//				+ A_air_diff_pf.z * (sin_w*cos_sigma*sin_theta*cos_psi + cos_w*sin_theta*sin_psi + sin_w*sin_sigma*cos_theta))
+//				< 0) //y Komponente of A_air_diff im bahnfesten KS
+//    {
+//    	sign = -1;
+//    } else sign = 1;
+//    //float xtrackErrCirc2 = sign * sqrtf(A_air_diff_pf.length()*A_air_diff_pf.length() - delta_height*delta_height); // distance from circle in xy plane
+    float xtrackErrCirc = -sgn * A_diff_lat.length();
 
-    	+cos_chi*(A_air_diff_pf.x * (sin_w*cos_sigma*cos_theta*cos_psi + cos_w*cos_theta*sin_psi - sin_w*sin_sigma*sin_theta)
-    			+ A_air_diff_pf.y * (-sin_w*cos_sigma*sin_psi + cos_w*cos_psi)
-				+ A_air_diff_pf.z * (sin_w*cos_sigma*sin_theta*cos_psi + cos_w*sin_theta*sin_psi + sin_w*sin_sigma*cos_theta))
-				< 0) //y Komponente of A_air_diff im bahnfesten KS
-    {
-    	sign = -1;
-    } else sign = 1;
-    float xtrackErrCirc = sign * sqrtf(A_air_diff_pf.length()*A_air_diff_pf.length() - delta_height*delta_height); // distance from circle in xy plane
 
     float spring_const;
     float tether_length_demand;
